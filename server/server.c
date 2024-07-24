@@ -52,7 +52,12 @@ int main() {
         }
 
         // do something with the connection socket
-        process_connection(conn_sock_fd);
+        while(1) {
+            int32_t err = process_connection(conn_sock_fd);
+            if(err) {
+                break;
+            }
+        }
 
         close(conn_sock_fd);
     }
@@ -99,7 +104,7 @@ int process_connection(int fd) {
     char response[] = "world";
     char wbuf[4 + sizeof(response)];
     uint32_t len = (uint32_t)strlen(response);
-    memcpy(&wbuf, &len, sizeof(len));
+    memcpy(wbuf, &len, 4);
     memcpy(&wbuf[4], response, len);
 
     return write_full(fd, wbuf, 4 + len);

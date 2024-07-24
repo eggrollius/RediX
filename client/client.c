@@ -49,16 +49,16 @@ L_DONE:
 }
 
 int32_t query(int fd, const char *text) {
-    uint32_t len = (uint32_t)strlen(text);
-    if (len > MAX_MSG) {
+    uint32_t wlen = (uint32_t)strlen(text);
+    if (wlen > MAX_MSG) {
         return -1;
     }
 
     char wbuf[4 + MAX_MSG];
-    memcpy(wbuf, &len, 4);  // assume little endian
-    memcpy(&wbuf[4], text, len);
+    memcpy(wbuf, &wlen, 4);  // assume little endian
+    memcpy(&wbuf[4], text, wlen);
 
-    int32_t err = write_full(fd, wbuf, 4 + len);
+    int32_t err = write_full(fd, wbuf, 4 + wlen);
     if (err) {
         return err;
     }
@@ -76,21 +76,22 @@ int32_t query(int fd, const char *text) {
         return err;
     }
 
-    memcpy(&len, rbuf, 4);  // assume little endian
-    if (len > MAX_MSG) {
+    uint32_t rlen;
+    memcpy(&rlen, rbuf, 4);  // assume little endian
+    if (rlen > MAX_MSG) {
         perror("too long");
         return -1;
     }
 
     // reply body
-    err = read_full(fd, &rbuf[4], len);
+    err = read_full(fd, &rbuf[4], rlen);
     if (err) {
         perror("read() error");
         return err;
     }
 
     // do something
-    rbuf[4 + len] = '\0';
+    rbuf[4 + rlen] = '\0';
     printf("server says: %s\n", &rbuf[4]);
     return 0;
 }
