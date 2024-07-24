@@ -1,4 +1,5 @@
 #include "server.h"
+#include "../libshared/libshared.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,17 +63,44 @@ int main() {
 
 // Takes the file descriptor of the connection socket
 // and processes the connection
-void process_connection(int fd) {
-    char rbuf[64] = {};
+int process_connection(int fd) {
+    // 4 bytes at the beggining represent a 32 bit integer,
+    // this int represents the length of the msg to follow.
+    char rbuf[4 + MAX_MSG + 1] = {}; // + 1 allows us to add the \0 at the end of the string
 
-    ssize_t n = read(fd, rbuf, sizeof(rbuf) - 1);
-    if (n < 0) {
-        perror("read() error");
-        return;
+    int rv = read_full(fd, rbuf, 4);
+    if (rv < 0) {
+        perror("read_full()");
+        return -1;
     }
 
-    printf("Client says: %s\n", rbuf);
+    uint32_t msg_size = 0;
+    memcpy(&msg_size, rbuf, 4);
 
-    char wbuf[] = "world";
-    write(fd, wbuf, strlen(wbuf));
+    // ensure the msg is not to large
+    if(msg_size > MAX_MSG) {
+        perror("msg exceeds max size");
+    }
+
+    // now read the msg
+    rv = read_full(fd, rbuf + 4, msg_size);
+    if (rv < 0) {
+        perror("read_full()");
+        return -1;
+    }
+
+    // add the string terminator
+    rbuf[4 + msg_size] = '\0';
+
+    // print msg locally
+    printf("Client says: %s\n", rbuf + 4);
+
+    // send response
+    char response[] = "world";
+    char wbuf[4 + sizeof(response)];
+    uint32_t len = (uint32_t)strlen(response);
+    memcpy(&wbuf, &len, sizeof(len));
+    memcpy(&wbuf[4], response, len);
+
+    return write_full(fd, wbuf, 4 + len);
 }
