@@ -9,4 +9,5 @@
 #include <netinet/in.h>
 
 int main();
-int32_t query(int fd, const char *text);
+int32_t send_req(int fd, const char *text);
+int32_t read_res(int fd);

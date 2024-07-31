@@ -30,17 +30,27 @@ int main() {
     }
 
     // multiple requests
-    int32_t err = query(fd, "hello1");
-    if (err) {
-        goto L_DONE;
+    const char *queries[6] = {
+        "set key1 value1",
+        "get key1",
+        "set key2 value2",
+        "get key2",
+        "del key1",
+        "get key1"
+    };
+
+    for (int i = 0; i < 6; ++i) {
+        int32_t err = send_req(fd, queries[i]);
+        if (err) {
+            goto L_DONE;
+        }
     }
-    err = query(fd, "hello2");
-    if (err) {
-        goto L_DONE;
-    }
-    err = query(fd, "hello3");
-    if (err) {
-        goto L_DONE;
+
+    for (size_t i = 0; i < 6; ++i) {
+        int32_t err = read_res(fd);
+        if (err) {
+            goto L_DONE;
+        }
     }
 
 L_DONE:
@@ -48,7 +58,7 @@ L_DONE:
     return 0;
 }
 
-int32_t query(int fd, const char *text) {
+int32_t send_req(int fd, const char *text) {
     uint32_t wlen = (uint32_t)strlen(text);
     if (wlen > MAX_MSG) {
         return -1;
@@ -63,10 +73,13 @@ int32_t query(int fd, const char *text) {
         return err;
     }
 
+    return 0;
+}
+
+int32_t read_res(int fd) {
     // 4 bytes header
     char rbuf[4 + MAX_MSG + 1];
-    int errno = 0;
-    err = read_full(fd, rbuf, 4);
+    int32_t err = read_full(fd, rbuf, 4);
     if (err) {
         if (errno == 0) {
             perror("EOF");

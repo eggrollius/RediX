@@ -1,16 +1,16 @@
-libshared: libshared/libshared.c
-	gcc -c libshared/libshared.c -o libshared/libshared.o
+libshared: libshared/libshared.cpp
+	g++ -c libshared/libshared.cpp -o libshared/libshared.o
 	
-server: server/server.h server/server.c libshared/libshared.o
-	gcc -c server/server.c -o server/server.o -I libshared
-	gcc -o server.out server/server.o libshared/libshared.o
+server: server/server.h server/server.cpp libshared/libshared.o
+	g++ -c server/server.cpp -o server/server.o -I libshared
+	g++ -o server.out server/server.o libshared/libshared.o
 
-client: client/client.h client/client.c
-	gcc -o client/client.o -c client/client.c -I libshared
-	gcc -o client.out client/client.o  libshared/libshared.o
+client: client/client.h client/client.cpp
+	g++ -o client/client.o -c client/client.cpp -I libshared
+	g++ -o client.out client/client.o  libshared/libshared.o
 
-test: test/test.c libshared/libshared.o client/client.o server/server.o
-	gcc -o test.out test/test.c libshared/libshared.o client/client.o server/server.o -I libshared -I client -I server
+test: test/test.cpp libshared/libshared.o client/client.o server/server.o
+	g++ -o test.out test/test.cpp libshared/libshared.o client/client.o server/server.o -I libshared -I client -I server
 	./test.out
 
 runserver: server.out	
