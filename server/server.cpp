@@ -1,8 +1,6 @@
 #include "server.h"
 #include "../libshared/libshared.h"
-
-#include "server.h"
-#include "../libshared/libshared.h"
+#include "database.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -19,7 +17,7 @@
 #include <string>
 #include <iterator>
 
-std::map<std::string, std::string> db;
+Database db;
 
 int main() {
     // opening a socket
@@ -285,10 +283,11 @@ bool try_one_request(Conn* conn) {
     process_command(len, (char*)&conn->rbuf[4], res_msg);
     
 
-    // generating echoing response
-    memcpy(&conn->wbuf[0], &len, 4);
-    memcpy(&conn->wbuf[4], &conn->rbuf[4], len);
-    conn->wbuf_size = 4 + len;
+    // generating response
+    uint32_t res_len = res_msg.length();
+    memcpy(&conn->wbuf[0], &res_len, 4);
+    memcpy(&conn->wbuf[4], res_msg.c_str(), res_len);
+    conn->wbuf_size = 4 + res_len;
 
     // remove the request from the buffer.
     size_t remain = conn->rbuf_size - 4 - len;
@@ -337,6 +336,12 @@ bool try_flush_buffer(Conn *conn) {
     return true;
 }
 
+/// @brief Processes a command string, of length len,
+/// and puts the response stirng in res_msg
+/// @param len The length of cmdstr
+/// @param cmdstr The command string
+/// @param res_msg Used to return the response string by refrence
+/// @return Returns a status code according to enum Db_return_code
 int32_t process_command(uint32_t len, char *cmdstr, std::string &res_msg) {
     std::vector<std::string> cmd; // tokenized cmd ex: ["get", "key", "value"...]
     parse_cmd_from_str(cmdstr, cmd); // tokenize the cmd str
@@ -344,14 +349,15 @@ int32_t process_command(uint32_t len, char *cmdstr, std::string &res_msg) {
     std::string operation = cmd[0];
     Db_return_code return_code;
     if(operation_is(operation, OP_GET) && cmd.size() == 2) {
-        // do get
-        return_code = db_get(cmd[1], res_msg);
+        return_code = db.get_value(cmd[1], res_msg);
     } else if(operation_is(operation, OP_SET) && cmd.size() == 3) {
-        // do set
-        return_code = db_set(cmd[1], cmd[2], res_msg);
+        return_code = db.set_value(cmd[1], cmd[2], res_msg);
     } else if(operation_is(operation, OP_DEL) && cmd.size() == 2) {
-        // do del
-        return_code = db_del(cmd[1], res_msg);
+        return_code = db.del_entry(cmd[1], res_msg);
+    } else if(operation_is(operation, OP_EXPIRE) && cmd.size() == 3) {
+        return_code = db.set_ttl(cmd[1], std::stoi(cmd[2]), res_msg);
+    } else if(operation_is(operation, OP_TTL) && cmd.size() == 2) {
+        return_code = db.get_ttl(cmd[1], res_msg);
     } else {
        res_msg = "Unkown operation";
        return_code = RES_NX;
@@ -368,37 +374,4 @@ int32_t parse_cmd_from_str(char* cmdstr, std::vector<std::string> &out)  {
     }
 
     return 0;
-}
-
-Db_return_code db_get(std::string key, std::string &res_msg) {
-    printf("Getting %s\n", key.c_str());
-    auto it = db.find(key);
-    if (it != db.end()) {
-        res_msg = it->second;
-        return RES_OK;
-    } else {
-        res_msg = "Key not found";
-        return RES_NX;
-    }
-}
-
-
-Db_return_code db_set(std::string key, std::string value, std::string &res_msg) {
-    printf("Setting %s to %s\n", key.c_str(), value.c_str());
-    db[key] = value;
-    res_msg = "Set successful";
-    return RES_OK;
-}
-
-Db_return_code db_del(std::string key, std::string &res_msg) {
-    printf("Deleting %s\n", key.c_str());
-    auto it = db.find(key);
-    if (it != db.end()) {
-        db.erase(it);
-        res_msg = "Delete successful";
-        return RES_OK;
-    } else {
-        res_msg = "Key not found";
-        return RES_NX;
-    }
 }

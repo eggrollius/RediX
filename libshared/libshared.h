@@ -15,9 +15,11 @@ enum {
 };
 
 enum Operation_code {
-    OP_GET = 0, // opcode fore get operation
-    OP_SET = 1, // opcode fore set operation
-    OP_DEL = 2, // opcode fore del operation
+    OP_GET = 0,         // opcode for get operation
+    OP_SET = 1,         // opcode for set operation
+    OP_DEL = 2,         // opcode for del operation
+    OP_EXPIRE = 3,      // opcode for setting the time to live of a key
+    OP_TTL = 4,         // opcode for retrieving the time to live of a key
 };
 
 bool operation_is(std::string operation, Operation_code code);

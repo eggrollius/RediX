@@ -31,12 +31,12 @@ int main() {
 
     // multiple requests
     const char *queries[6] = {
-        "set key1 value1",
-        "get key1",
-        "set key2 value2",
-        "get key2",
-        "del key1",
-        "get key1"
+        "SET key1 value1",
+        "GET key1",
+        "SET key2 value2",
+        "GET key2",
+        "DEL key1",
+        "GET key1"
     };
 
     for (int i = 0; i < 6; ++i) {

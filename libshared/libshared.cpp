@@ -9,11 +9,15 @@
 bool operation_is(std::string operation, Operation_code op_code) {
     switch (op_code) {
         case OP_GET:
-            return operation == "get";
+            return operation == "GET";
         case OP_SET:
-            return operation == "set";
+            return operation == "SET";
         case OP_DEL:
-            return operation == "del";
+            return operation == "DEL";
+        case OP_EXPIRE:
+            return operation == "EXPIRE";
+        case OP_TTL:
+            return operation == "TTL";
         default:
             return false;
     }
