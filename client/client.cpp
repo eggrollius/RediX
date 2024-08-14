@@ -1,6 +1,7 @@
 #include "client.h"
 #include "../libshared/libshared.h"
 
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,7 +40,7 @@ int main() {
         "GET key1"
     };
 
-    for (int i = 0; i < 6; ++i) {
+    /*for (int i = 0; i < 6; ++i) {
         int32_t err = send_req(fd, queries[i]);
         if (err) {
             goto L_DONE;
@@ -51,7 +52,26 @@ int main() {
         if (err) {
             goto L_DONE;
         }
-    }
+    }*/
+
+    std::cout << "Testing EXPIRE" << std::endl;
+    send_req(fd, "SET expiringkey helloworld");
+    read_res(fd);
+
+    send_req(fd, "EXPIRE expiringkey 5");
+    read_res(fd);
+
+    send_req(fd, "GET expiringkey"); //most likley should still exist within 3 seconds
+    read_res(fd);
+
+    send_req(fd, "TTL expiringkey"); // get the TTL of the key
+    read_res(fd);
+
+    sleep(5); // wait until it expires
+
+    send_req(fd, "GET expiringkey");
+    read_res(fd);
+    goto L_DONE;
 
 L_DONE:
     close(fd);

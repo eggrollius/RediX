@@ -344,6 +344,7 @@ bool try_flush_buffer(Conn *conn) {
 /// @return Returns a status code according to enum Db_return_code
 int32_t process_command(uint32_t len, char *cmdstr, std::string &res_msg) {
     std::vector<std::string> cmd; // tokenized cmd ex: ["get", "key", "value"...]
+    cmdstr[len] = '\0';
     parse_cmd_from_str(cmdstr, cmd); // tokenize the cmd str
 
     std::string operation = cmd[0];

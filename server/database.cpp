@@ -75,11 +75,20 @@ Db_return_code Database::set_ttl(const std::string &key, const int ttl, std::str
 
 Db_return_code Database::get_ttl(const std::string &key, std::string &res_msg) const {
     std::cout << "Getting TTL for key '" << key << "'." << std::endl;
-    if (this->ttls.contains(key)) {
-        res_msg = std::to_string(this->ttls.at(key));
-        std::cout << "Get TTL operation successful for key '" << key << "'." << std::endl;
-        return RES_OK;
+    if (this->data.contains(key) && !is_expired(key)) {
+        // The key exists
+        if(this->ttls.contains(key)) {
+            // There is an associated TTL
+            res_msg = std::to_string(this->ttls.at(key) - time(0));
+            std::cout << "Get TTL operation successful for key '" << key << "'." << std::endl;
+            return RES_OK;
+        } else {
+            // There is no associated TTL
+            res_msg = "The key exists but has no associated expire";
+            return RES_NX;
+        }
     } else {
+        // The key does not exist
         res_msg = "get ttl operation unsuccessful, key: " + key + " not found";
         std::cout << "Get TTL operation unsuccessful for key '" << key << "'." << std::endl;
         return RES_NX;
