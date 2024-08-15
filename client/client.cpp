@@ -40,21 +40,12 @@ int main() {
         "GET key1"
     };
 
-    /*for (int i = 0; i < 6; ++i) {
-        int32_t err = send_req(fd, queries[i]);
-        if (err) {
-            goto L_DONE;
-        }
+    for (int i = 0; i < 6; ++i) {
+        send_req(fd, queries[i]);
+        read_res(fd);
     }
 
-    for (size_t i = 0; i < 6; ++i) {
-        int32_t err = read_res(fd);
-        if (err) {
-            goto L_DONE;
-        }
-    }*/
-
-    std::cout << "Testing EXPIRE" << std::endl;
+    /*std::cout << "Testing EXPIRE" << std::endl;
     send_req(fd, "SET expiringkey helloworld");
     read_res(fd);
 
@@ -71,9 +62,8 @@ int main() {
 
     send_req(fd, "GET expiringkey");
     read_res(fd);
-    goto L_DONE;
+    */
 
-L_DONE:
     close(fd);
     return 0;
 }
