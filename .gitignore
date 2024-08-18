@@ -1,3 +1,4 @@
-/.vscode
-*.out
 *.o
+/.vscode/*
+testclient
+src/redix
