@@ -18,27 +18,40 @@ int Database::set_value(const std::string &key, const std::string &value, std::s
         this->ttls.erase(ttl_entry);
     }
 
+    // Before setting, make sure that there is no key 
+    // existing with value of a non-string datatype
+    if(this->data.contains(key) && !this->is_expired(key)) {
+        StorageValue existing_value = this->data[key];
+        // Check its type
+        if(!std::holds_alternative<std::string>(existing_value)) {
+            res_msg = "A non-string key with that name already exists, cannot SET it to a string";
+            return -1;
+        }
+    }
+
     // Set the new value
     this->data[key] = value;
     std::cout << "Value set for key '" << key << "'." << std::endl;
-
-    // Set the result message
     res_msg = "Set operation successful";
     std::cout << "Set operation successful for key '" << key << "'." << std::endl;
 
-    // Return the result code
     return 1;
 }
 
 int Database::get_value(const std::string &key, std::string &res_msg) const {
     std::cout << "Getting value for key '" << key << "'." << std::endl;
     if (this->data.contains(key) && !this->is_expired(key)) {
-        res_msg = this->data.at(key); // Assuming data stores std::string
-        std::cout << "Get operation successful for key '" << key << "'." << std::endl;
+        StorageValue data_value = this->data.at(key);
+        // Check that it is a string
+        if(!holds_alternative<std::string>(data_value)) {
+            res_msg = "ERROR: Cannot GET a non-string data type";
+            return -1;
+        }
+        std::cout << "GET operation successful for key '" << key << "'." << std::endl;
         return 1;
     } else {
-        res_msg = "get operation unsuccessful, key not found or expired";
-        std::cout << "Get operation unsuccessful for key '" << key << "'." << std::endl;
+        res_msg = "GET operation unsuccessful, key not found or expired";
+        std::cout << "GET operation unsuccessful for key '" << key << "'." << std::endl;
         return 0;
     }
 }

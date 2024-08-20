@@ -1,12 +1,13 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
+#include "StorageValue.h"
 #include <unordered_map>
 #include <ctime>
 
 class Database {
 private:
-    std::unordered_map<std::string, std::string> data;
+    std::unordered_map<std::string, StorageValue> data;
     std::unordered_map<std::string, time_t> ttls;
 
     bool is_expired(const std::string&key) const;
