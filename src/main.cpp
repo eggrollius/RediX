@@ -6,4 +6,5 @@ int main() {
     server->accept_client();
     server->run();
   }
+  server->stop();
 }

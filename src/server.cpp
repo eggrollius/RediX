@@ -63,7 +63,21 @@ bool Server::accept_client() {
 }
 
 bool Server::stop() {
-  return true;
+    // Close all client connections
+    for (ClientConnection* client : this->client_connections) {
+        if (client) {
+            delete client;
+        }
+    }
+    this->client_connections.clear();
+
+    // Close the listening socket
+    if (this->listening_sock_fd >= 0) {
+        close(this->listening_sock_fd);
+        this->listening_sock_fd = -1;
+    }
+
+    return true;
 }
 
 bool Server::fd_set_nonblocking(const int fd) {

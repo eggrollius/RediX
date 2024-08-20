@@ -5,34 +5,35 @@
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+
+#define MAX_MSG 4096
 
 // Constructor
 Client::Client() : socket_fd(-1) {}
 
 // Destructor
 Client::~Client() {
-    if (socket_fd >= 0) {
-        close(socket_fd);
+    if (this->socket_fd >= 0) {
+        close(this->socket_fd);
     }
 }
 
 // Connect to the server
-bool Client::connect_to_server(const char *ip, uint16_t port) {
-    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_fd < 0) {
-        perror("socket()");
+bool Client::connect_to_server(int port) {
+    this->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (this->socket_fd < 0) {
         return false;
     }
 
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
     addr.sin_port = ntohs(port);
-    addr.sin_addr.s_addr = inet_addr(ip);
+    addr.sin_addr.s_addr = ntohl(0); // 0.0.0
 
-    if (connect(socket_fd, (const struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        perror("connect()");
+    if (connect(this->socket_fd, (const struct sockaddr *)&addr, sizeof(addr)) < 0) {
         return false;
     }
 
@@ -40,20 +41,89 @@ bool Client::connect_to_server(const char *ip, uint16_t port) {
 }
 
 // Send a request to the server
-void Client::send_request(const char *text) {
-    if (send_req(text) < 0) {
-        std::cerr << "Failed to send request: " << text << std::endl;
+bool Client::send_request(const std::string& req) {
+    const char* text = req.c_str();
+    uint32_t wlen = (uint32_t)strlen(text);
+    if (wlen > MAX_MSG) {
+        return false;
     }
+
+    char wbuf[4 + MAX_MSG];
+    memcpy(wbuf, &wlen, 4);  // assume little endian
+    memcpy(&wbuf[4], text, wlen);
+
+    int32_t err = write_full(this->socket_fd, wbuf, 4 + wlen);
+    if (err) {
+        return false;
+    }
+
+    return true;
 }
 
 // Read a response from the server
-void Client::read_response() {
-    if (read_res() < 0) {
-        std::cerr << "Failed to read response from server" << std::endl;
+std::string Client::read_response() {
+    // 4 bytes header
+    char rbuf[4 + MAX_MSG + 1];
+    int32_t err = read_full(this->socket_fd, rbuf, 4);
+    if (err) {
+        if (errno == 0) {
+            // perror("EOF");
+        } else {
+            // perror("read() error");
+        }
+        return "";
     }
+
+    uint32_t rlen;
+    memcpy(&rlen, rbuf, 4);  // assume little endian
+    if (rlen > MAX_MSG) {
+        // perror("too long");
+        return "";
+    }
+
+    // reply body
+    err = read_full(this->socket_fd, &rbuf[4], rlen);
+    if (err) {
+        // perror("read() error");
+        return "";
+    }
+
+    
+    rbuf[4 + rlen] = '\0';
+    return std::string(&rbuf[4]);
 }
 
-// Private function to send request
-int32_t Client::send_req(const char *text) {
-    uint32_t wlen = (uint32_t)strlen(text);
-    if (wlen > MAX_MSG) 
+int32_t Client::read_full(int fd, char *buf, size_t n) {
+    while (n > 0) {
+        int rv = read(fd, buf, n);
+        if(rv <= 0) {
+            // perror("read() in read_full() failed");
+            return -1;
+        }
+
+        n -= (size_t)rv;
+        buf += rv;
+    }
+
+    return 0;
+}
+
+/// @brief writes n chars from buf into the fd, ensures all n chars are written
+/// @param fd 
+/// @param buf 
+/// @param n 
+/// @return -1 on error, 0 on success
+int32_t Client::write_full(int fd, char *buf, size_t n) {
+    while (n > 0) {
+        int rv = write(fd, buf, n);
+        if(rv <= 0) {
+            // perror("write() in write_full() failed");
+            return -1;
+        }
+
+        n -= (size_t) rv;
+        buf += (size_t) rv;
+    }
+
+    return 0;
+}
