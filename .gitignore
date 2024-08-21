@@ -1,4 +1,7 @@
 build
+CmakeFiles
+*CMakeCache*
+*cmake_install.cmake*
 *.o
 /.vscode/*
 testclient
