@@ -1,8 +1,14 @@
 build
-CmakeFiles
-*CMakeCache*
-*cmake_install.cmake*
+CMakeFiles
 *.o
 /.vscode/*
 testclient
 src/redix
+cmake_install.cmake
+CMakeCache.txt
+libclient_lib.a
+libserver.a
+Makefile
+test/Makefile
+test/integration/integration_tests
+

@@ -106,7 +106,6 @@ void Server::run() {
       std::cout << "Client_msg='" << client_msg << "'." << std::endl;
 
       std::string response = this->request_handler.handle_request(client_msg);
-      std::cout << "response_msg='" << response << "'." << std::endl;
       client->send_response(response);
     }
     

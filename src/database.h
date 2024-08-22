@@ -12,11 +12,11 @@ private:
 
     bool is_expired(const std::string&key) const;
 public: 
-    int get_value(const std::string &key, std::string &res_msg) const;
-    int set_value(const std::string &key, const std::string &value, std::string &res_msg);
-    int del_entry(const std::string &key, std::string &res_msg);
-    int set_ttl(const std::string &key, const int ttl, std::string &res_msg);
-    int get_ttl(const std::string &key, std::string &res_msg) const;
+    std::string get_value(const std::string &key) const;
+    std::string set_value(const std::string &key, const std::string &value);
+    std::string del_entry(const std::string &key);
+    std::string set_ttl(const std::string &key, const int ttl);
+    std::string get_ttl(const std::string &key) const;
 };
 
 #endif // DATABASE_H
