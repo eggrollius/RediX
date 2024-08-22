@@ -12,7 +12,9 @@
 #define MAX_MSG 4096
 
 // Constructor
-Client::Client() : socket_fd(-1) {}
+Client::Client() : socket_fd(-1), port(1234) {}
+
+Client::Client(int port) : socket_fd(-1), port(port) {}
 
 // Destructor
 Client::~Client() {
@@ -22,7 +24,7 @@ Client::~Client() {
 }
 
 // Connect to the server
-bool Client::connect_to_server(int port) {
+bool Client::connect_to_server() {
     this->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (this->socket_fd < 0) {
         return false;
@@ -30,7 +32,7 @@ bool Client::connect_to_server(int port) {
 
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
-    addr.sin_port = ntohs(port);
+    addr.sin_port = ntohs(this->port);
     addr.sin_addr.s_addr = ntohl(0); // 0.0.0
 
     if (connect(this->socket_fd, (const struct sockaddr *)&addr, sizeof(addr)) < 0) {
