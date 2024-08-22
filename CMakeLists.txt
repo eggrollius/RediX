@@ -17,6 +17,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 set(SOURCE_FILES
     src/main.cpp
     src/server.cpp
+    src/ResponseMessage.cpp
     src/database.cpp
     src/ClientConnection.cpp
     src/RequestHandler.cpp
@@ -35,6 +36,7 @@ add_library(client_lib STATIC src/client.cpp)
 # Add the server library
 add_library(server STATIC
     src/server.cpp
+    src/ResponseMessage.cpp
     src/database.cpp
     src/ClientConnection.cpp
     src/RequestHandler.cpp

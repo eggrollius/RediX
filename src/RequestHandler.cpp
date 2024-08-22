@@ -16,18 +16,17 @@ std::string RequestHandler::handle_request(const std::string &cmd_str) {
 
   std::string operation = cmd[0];
   if(operation_is(operation, Operation::GET) && cmd.size() == 2) {
-    this->database.get_value(cmd[1], res_msg);
+    res_msg = this->database.get_value(cmd[1]);
   } else if(operation_is(operation, Operation::SET) && cmd.size() == 3) {
-    this->database.set_value(cmd[1], cmd[2], res_msg);
+    res_msg = this->database.set_value(cmd[1], cmd[2]);
   } else if(operation_is(operation, Operation::DEL) && cmd.size() == 2) {
-    this->database.del_entry(cmd[1], res_msg);
+    res_msg = this->database.del_entry(cmd[1]);
   } else if(operation_is(operation, Operation::EXPIRE) && cmd.size() == 3) {
-    this->database.set_ttl(cmd[1], std::stoi(cmd[2]), res_msg);
+    res_msg = this->database.set_ttl(cmd[1], std::stoi(cmd[2]));
   } else if(operation_is(operation, Operation::TTL) && cmd.size() == 2) {
-    this->database.get_ttl(cmd[1], res_msg);
+    res_msg = this->database.get_ttl(cmd[1]);
   } else {
     res_msg = "Unkown operation";
-
   }
 
   return res_msg;
