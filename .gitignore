@@ -12,3 +12,5 @@ Makefile
 test/Makefile
 test/integration/integration_tests
 
+redix
+test/Makefile
