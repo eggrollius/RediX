@@ -12,8 +12,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-        with:
-          submodules: true
+      with:
+        submodules: recursive  # Initialize and update submodules recursively
 
     - name: Install CMake
       run: sudo apt-get install -y cmake
@@ -25,4 +25,4 @@ jobs:
       run: cmake --build build
 
     - name: Run integration tests
-      run: make build run_integration_tests
+      run: make -C build run_integration_tests
