@@ -12,14 +12,21 @@ public:
     ~Client();
 
     bool connect_to_server();
-    bool send_request(const std::string &req);
-    std::string read_response();
+
+    std::string get(const std::string& key);
+    std::string set(const std::string& key, const std::string& value);
+    std::string del(const std::string& key);
+    int ttl(const std::string& key);
+    std::string expire(const std::string& key, int seconds);
 
 private:
     int socket_fd;
     int port;
     int32_t read_full(int fd, char *buf, size_t n);
     int32_t write_full(int fd, char * buf, size_t n);
+    bool send_request(const std::string &req);
+    std::string send_command(const std::string& command);
+    std::string read_response();
 };
 
 #endif // CLIENT_H

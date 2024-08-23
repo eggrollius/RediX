@@ -1,48 +1,59 @@
-#include "ResponseMessage.h"
-#include <iostream>
+#include <gtest/gtest.h>
 #include "server.h"
 #include "client.h"
+#include "ResponseMessage.h"
 
-// Helper function to perform the test
-void run_integration_test() {
-  // Initialize server and client
-  Server server(1234);
-  Client client(1234);
+class RediXIntegrationTest : public ::testing::Test {
+protected:
+    Server server;
+    Client client;
 
-  // Start the server
-  server.start();
+    RediXIntegrationTest() : server(1234), client(1234) {}
 
+    void SetUp() override {
+        // Start the server
+        server.start();
+        // Connect the client to the server
+        client.connect_to_server();
+    }
 
-  // Set up the client
-  if (!client.connect_to_server()) {
-    std::cout << "Could not connect to server" << std::endl;
-    return;
-  }
-  std::cout << "Client connected to server" << std::endl;
+    void TearDown() override {
+        // Disconnect the client
+        // client.disconnect();
+        // Stop the server
+        server.stop();
+    }
+};
 
-  // test: check if the client can send a request and receive a valid response
-  std::string request = "SET key1 val1";
-  std::string expected_response = Response::ToString(ResponseMessage::OK);
+TEST_F(RediXIntegrationTest, SetGetTest) {
+    client.set("key", "value");
 
-  if (!client.send_request(request)) {
-    std::cout << "Could not send message to server" << std::endl;
-  } else {
-    std::cout << "Sent message to server" << std::endl;
-  }
-
-  std::string response = client.read_response();
-
-  if (response == expected_response) {
-    std::cout << "Test passed: Received expected response" << std::endl;
-  } else {
-    std::cout << "Test failed: Expected \"" << expected_response
-              << "\" but got \"" << response << "\"" << std::endl;
-  }
-
-  server.stop(); 
+    EXPECT_EQ(client.get("key"), "value");
 }
 
-int main() {
-    run_integration_test();
-    return 0;
+TEST_F(RediXIntegrationTest, DelTest) {
+    client.set("key", "value");
+    client.del("key");
+    std::string expected_response = Response::ToString(ResponseMessage::NIL);
+
+    EXPECT_EQ(client.get("key"), expected_response);
+}
+
+TEST_F(RediXIntegrationTest, TTLTest) {
+    client.set("key", "value");
+
+    int TTL = 10;
+    client.expire("key", TTL);
+
+    EXPECT_GT(client.ttl("key"), TTL);
+}
+
+TEST_F(RediXIntegrationTest, ExpireTest) {
+    client.set("key", "value");
+
+    client.expire("key", 5);
+    std::this_thread::sleep_for(std::chrono::seconds(6));
+
+    std::string expected_response = Response::ToString(ResponseMessage::NIL);
+    EXPECT_EQ(client.get("key"), expected_response);
 }
