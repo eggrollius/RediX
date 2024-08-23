@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
   build-and-test:
@@ -13,7 +14,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
       with:
-        submodules: true 
+        submodules: true
+        fetch-depth: 0  # Ensure full history is fetched
+        recursive: true  # Ensure submodules are fetched recursively
 
     - name: Install CMake
       run: sudo apt-get install -y cmake
