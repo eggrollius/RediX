@@ -129,3 +129,47 @@ int32_t Client::write_full(int fd, char *buf, size_t n) {
 
     return 0;
 }
+
+// Send a generic command to the server and get the response
+std::string Client::send_command(const std::string& command) {
+    std::string request = command;
+    if (!send_request(request)) {
+        std::cerr << "Error in Client method send_request()" << std::endl;
+    }
+
+    return read_response();
+}
+
+// Wrapper for GET command
+std::string Client::get(const std::string& key) {
+    return send_command("GET " + key);
+}
+// Wrapper for SET command
+std::string Client::set(const std::string& key, const std::string& value) {
+    std::string request = "SET " + key + " " + value;
+    return send_command(request);
+}
+
+// Wrapper for DEL command
+std::string Client::del(const std::string& key) {
+    std::string request = "DEL " + key;
+    return send_command(request);
+}
+
+// Wrapper for TTL command
+int Client::ttl(const std::string& key) {
+    std::string request = "TTL " + key;
+    std::string response = send_command(request);
+    try {
+        return std::stoi(response); // Convert response to integer
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Error converting ttl from string to int" << std::endl;
+        return -3;
+    }
+}
+
+// Wrapper for EXPIRE command
+std::string Client::expire(const std::string& key, int seconds) {
+    std::string request = "EXPIRE " + key + " " + std::to_string(seconds);
+    return send_command(request);
+}

@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_compile_options(-Wall -Wextra)
 
+# Add Google Test
+enable_testing()
+add_subdirectory(googletest)
+
 # Create the server library
 add_library(server STATIC
     src/server.cpp
@@ -17,7 +21,7 @@ add_library(server STATIC
 )
 
 # Create the client library
-add_library(client_lib STATIC src/client.cpp)
+add_library(client STATIC src/client.cpp)
 
 # Create the executable
 add_executable(redix src/main.cpp)
@@ -25,8 +29,8 @@ add_executable(redix src/main.cpp)
 # Find and link pthread
 find_package(Threads REQUIRED)
 target_link_libraries(server PRIVATE Threads::Threads)
-target_link_libraries(client_lib PRIVATE Threads::Threads)
-target_link_libraries(redix PRIVATE server client_lib Threads::Threads)
+target_link_libraries(client PRIVATE Threads::Threads)
+target_link_libraries(redix PRIVATE server client Threads::Threads)
 
 # Add the test directory
 add_subdirectory(test)
