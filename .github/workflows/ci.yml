@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install CMake
+      run: sudo apt-get install -y cmake
+
+    - name: Configure the project with CMake
+      run: cmake -S . -B build
+
+    - name: Build the project
+      run: cmake --build build
+
+    - name: Run integration tests
+      run: make build run_integration_tests
