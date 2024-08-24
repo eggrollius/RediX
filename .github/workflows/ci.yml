@@ -29,3 +29,6 @@ jobs:
 
     - name: Run integration tests
       run: make -C build run_integration_tests
+
+    - name: Run unit tests
+      run: make -C build run_unit_tests

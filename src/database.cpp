@@ -46,6 +46,10 @@ std::string Database::del_entry(const std::string &key) {
 }
 
 std::string Database::set_ttl(const std::string &key, const int ttl) {
+    if(!this->data.contains(key)) {
+        // Key does not exist
+        return Response::ToString(ResponseMessage::NIL);
+    }
     if(!this->is_expired(key)) {
         // no existing ttl entry, so just add one
         this->ttls[key] = time(0) + ttl; // add ttl seconds to current time

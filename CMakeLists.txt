@@ -23,21 +23,16 @@ add_library(server STATIC
 # Create the client library
 add_library(client STATIC src/client.cpp)
 
-# Create the executable
-add_executable(redix src/main.cpp)
+# Create the database library object
+add_library(database STATIC 
+    src/database.cpp   
+    src/ResponseMessage.cpp 
+)
 
 # Find and link pthread
 find_package(Threads REQUIRED)
 target_link_libraries(server PRIVATE Threads::Threads)
 target_link_libraries(client PRIVATE Threads::Threads)
-target_link_libraries(redix PRIVATE server client Threads::Threads)
 
 # Add the test directory
 add_subdirectory(test)
-
-# Custom commands
-add_custom_target(run
-    COMMAND ./redix
-    DEPENDS redix
-    WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
-)
