@@ -2,6 +2,7 @@
 
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(${CMAKE_SOURCE_DIR}/googletest)
 
 # Add the integration directory
 add_subdirectory(integration)
