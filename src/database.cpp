@@ -28,10 +28,11 @@ std::string Database::get_value(const std::string &key) const {
             return Response::ToString(ResponseMessage::WRONGTYPE);
         }
         
-        return Response::ToString(ResponseMessage::OK);
-    } else {
-        return Response::ToString(ResponseMessage::NIL);
+        return std::get<std::string>(data_value);
     }
+    
+    return Response::ToString(ResponseMessage::NIL);
+
 }
 
 std::string Database::del_entry(const std::string &key) {

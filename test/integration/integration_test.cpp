@@ -42,10 +42,15 @@ TEST_F(RediXIntegrationTest, DelTest) {
 TEST_F(RediXIntegrationTest, TTLTest) {
     client.set("key", "value");
 
-    int TTL = 10;
-    client.expire("key", TTL);
+    int Expected_TTL = 10;
+    client.expire("key", Expected_TTL);
 
-    EXPECT_GT(client.ttl("key"), TTL);
+    int TTL = client.ttl("key");
+
+    // NOTE: We expect the TTL to be between 0-Expected_TTL
+    // however this test could fail if for some reason this network
+    //  request takes over ten seconds.
+    EXPECT_TRUE((TTL >= 0) && (TTL <= Expected_TTL));
 }
 
 TEST_F(RediXIntegrationTest, ExpireTest) {
