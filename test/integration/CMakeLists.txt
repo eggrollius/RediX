@@ -1,7 +1,7 @@
 # test/integration/CMakeLists.txt
 
 # Create your executable
-add_executable(integration_tests integration_test.cpp integration_test.cpp)
+add_executable(integration_tests integration_test.cpp)
 
 # Link Google Test libraries
 target_link_libraries(integration_tests gtest gtest_main server client)
