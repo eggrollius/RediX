@@ -206,3 +206,73 @@ TEST_F(DatabaseTest, SetGetThreadSafety) {
     EXPECT_EQ(result, expectedValue);
   }
 }
+
+
+/// @brief Perform many delete operations concurrently using threads
+/// Then check that all keys are removed
+TEST_F(DatabaseTest, DelThreadSafety) {
+    int num_entries = 10000;
+    std::vector<std::thread> threads;
+
+    // Setup initial data
+    for (int i = 0; i < num_entries; ++i) {
+        std::string key = "key" + std::to_string(i);
+        std::string value = "value" + std::to_string(i);
+        database.set_value(key, value);
+    }
+
+    // Concurrent delete operations
+    for (int i = 0; i < num_entries; ++i) {
+        threads.emplace_back([this, i]() {
+            std::string key = "key" + std::to_string(i);
+            this->database.del_entry(key);
+        });
+    }
+
+    for (std::thread &thread : threads) {
+        thread.join();
+    }
+
+    // Check that all keys are removed
+    for (int i = 0; i < num_entries; ++i) {
+        std::string key = "key" + std::to_string(i);
+        std::string result = database.get_value(key);
+        EXPECT_EQ(result, Response::ToString(ResponseMessage::NIL)); 
+    }
+}
+
+/// @brief Perform many set_ttl operations concurrently using threads
+/// Then check that expired keys are correctly removed
+TEST_F(DatabaseTest, SetTTLAndExpireThreadSafety) {
+    int num_entries = 10000;
+    std::vector<std::thread> threads;
+    std::vector<std::string> keys;
+
+    // Setup initial data and TTLs
+    for (int i = 0; i < num_entries; ++i) {
+        std::string key = "key" + std::to_string(i);
+        std::string value = "value" + std::to_string(i);
+        database.set_value(key, value);
+        keys.push_back(key);
+    }
+
+    // Concurrent set_ttl operations with short TTLs
+    for (int i = 0; i < num_entries; ++i) {
+        threads.emplace_back([this, key = keys[i]]() {
+            this->database.set_ttl(key, 1);
+        });
+    }
+
+    for (std::thread &thread : threads) {
+        thread.join();
+    }
+
+    // Wait for TTLs to expire
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    // Check that all keys are expired
+    for (const std::string& key : keys) {
+        std::string result = database.get_value(key);
+        EXPECT_EQ(result, Response::ToString(ResponseMessage::NIL)); 
+    }
+}
