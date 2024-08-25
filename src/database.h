@@ -4,12 +4,14 @@
 #include "StorageValue.h"
 #include <unordered_map>
 #include <ctime>
+#include <mutex>
 
 class Database {
 private:
     std::unordered_map<std::string, StorageValue> data;
     std::unordered_map<std::string, time_t> ttls;
-
+    mutable std::mutex data_mutex;
+    mutable std::mutex ttl_mutex;
     bool is_expired(const std::string&key) const;
 public: 
     std::string get_value(const std::string &key) const;
