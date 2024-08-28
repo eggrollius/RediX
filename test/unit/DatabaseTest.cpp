@@ -63,7 +63,7 @@ TEST_F(DatabaseTest, SetGetEmptyStringKey) {
 }
 
 /// @brief Set and Get a key multiple times
-TEST_F(DatabaseTest, SetGetMultiplTimes) {
+TEST_F(DatabaseTest, SetGetMultipleTimes) {
   int num_of_modifications = 1000;
   for(int i = 0; i < num_of_modifications; ++i) {
     std::string key = generate_random_string();
@@ -73,7 +73,7 @@ TEST_F(DatabaseTest, SetGetMultiplTimes) {
     EXPECT_EQ(setResponse, Response::ToString(ResponseMessage::OK));
 
     std::string result = database.get_value(default_key);
-    ASSERT_EQ(result, default_value);
+    EXPECT_EQ(result, default_value);
   }
 }
 
@@ -244,7 +244,8 @@ TEST_F(DatabaseTest, DelThreadSafety) {
 /// @brief Perform many set_ttl operations concurrently using threads
 /// Then check that expired keys are correctly removed
 TEST_F(DatabaseTest, SetTTLAndExpireThreadSafety) {
-    int num_entries = 10000;
+    int num_entries = 100000;
+    int num_threads = 10;
     std::vector<std::thread> threads;
     std::vector<std::string> keys;
 
@@ -256,15 +257,26 @@ TEST_F(DatabaseTest, SetTTLAndExpireThreadSafety) {
         keys.push_back(key);
     }
 
-    // Concurrent set_ttl operations with short TTLs
-    for (int i = 0; i < num_entries; ++i) {
-        threads.emplace_back([this, key = keys[i]]() {
-            this->database.set_ttl(key, 1);
-        });
+    // Function to set TTLs for a range of keys
+    auto set_ttl_for_range = [this, &keys](int start, int end) {
+        for (int i = start; i < end; ++i) {
+            this->database.set_ttl(keys[i], 1); // Set a short TTL
+        }
+    };
+
+    // Divide work among threads
+    int range_size = (num_entries + num_threads - 1) / num_threads; // Divide entries among threads
+    for (int i = 0; i < num_threads; ++i) {
+        int start = i * range_size;
+        int end = std::min(start + range_size, num_entries);
+        threads.emplace_back(set_ttl_for_range, start, end);
     }
 
+    // Join all threads to ensure they complete
     for (std::thread &thread : threads) {
-        thread.join();
+        if (thread.joinable()) {
+            thread.join();
+        }
     }
 
     // Wait for TTLs to expire
