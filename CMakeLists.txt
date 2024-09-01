@@ -10,6 +10,8 @@ add_compile_options(-Wall -Wextra)
 enable_testing()
 add_subdirectory(googletest)
 
+include_directories(${CMAKE_SOURCE_DIR}/src/DataStructures)
+
 # Create the server library
 add_library(server STATIC
     src/server.cpp
@@ -27,6 +29,11 @@ add_library(client STATIC src/client.cpp)
 add_library(database STATIC 
     src/database.cpp   
     src/ResponseMessage.cpp 
+)
+
+add_library(datastructures STATIC
+    src/DataStructures/LinkedList.cpp
+    src/DataStructures/Node.cpp
 )
 
 # Find and link pthread

@@ -62,3 +62,34 @@ TEST_F(RediXIntegrationTest, ExpireTest) {
     std::string expected_response = Response::ToString(ResponseMessage::NIL);
     EXPECT_EQ(client.get("key"), expected_response);
 }
+
+TEST_F(RediXIntegrationTest, ListPushPopTest) {
+    // Left Push Test
+    client.lpush("list_key", "value1");
+    client.lpush("list_key", "value2");
+    client.lpush("list_key", "value3");
+
+    // Verify the list length
+    EXPECT_EQ(client.llen("list_key"), "3");
+
+    // Right Push Test
+    client.rpush("list_key", "value4");
+    client.rpush("list_key", "value5");
+
+    // Verify the list length
+    EXPECT_EQ(client.llen("list_key"), "5");
+
+    // Left Pop Test
+    std::string left_pop_result = client.lpop("list_key");
+    EXPECT_EQ(left_pop_result, "value3");
+
+    // Verify the list length
+    EXPECT_EQ(client.llen("list_key"), "4");
+
+    // Right Pop Test
+    std::string right_pop_result = client.rpop("list_key");
+    EXPECT_EQ(right_pop_result, "value5");
+
+    // Verify the list length
+    EXPECT_EQ(client.llen("list_key"), "3");
+}

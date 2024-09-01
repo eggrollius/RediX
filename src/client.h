@@ -19,6 +19,12 @@ public:
     int ttl(const std::string& key);
     std::string expire(const std::string& key, int seconds);
 
+    std::string lpush(const std::string& key, const std::string& value);
+    std::string rpush(const std::string& key, const std::string& value);
+    std::string lpop(const std::string& key);
+    std::string rpop(const std::string& key);
+    std::string llen(const std::string& key);
+
 private:
     int socket_fd;
     int port;

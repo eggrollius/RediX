@@ -173,3 +173,29 @@ std::string Client::expire(const std::string& key, int seconds) {
     std::string request = "EXPIRE " + key + " " + std::to_string(seconds);
     return send_command(request);
 }
+
+
+std::string Client::lpush(const std::string& key, const std::string& value) {
+    std::string request = "LPUSH " + key + " " + value;
+    return send_command(request);
+}
+
+std::string Client::rpush(const std::string& key, const std::string& value) {
+    std::string request = "RPUSH " + key + " " + value;
+    return send_command(request);
+}
+
+std::string Client::lpop(const std::string& key) {
+    std::string request = "LPOP " + key; 
+    return send_command(request);
+}
+
+std::string Client::rpop(const std::string& key) {
+    std::string request = "RPOP " + key; 
+    return send_command(request);
+}
+
+std::string Client::llen(const std::string& key) {
+    std::string request = "LLEN " + key;
+    return send_command(request);
+}

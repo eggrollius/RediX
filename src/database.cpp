@@ -1,6 +1,7 @@
 #include "database.h"
 #include "ResponseMessage.h"
 #include <iostream>
+#include <ctime>
 #include <mutex>
 #include <random>
 
@@ -12,6 +13,47 @@ Database::~Database() {
     this->stop_cleanup = true;
     if (this->cleanup_thread.joinable()) {
         this->cleanup_thread.join();
+    }
+}
+
+void Database::cleanup_expired() {
+    // Random number generator setup
+    std::random_device rd;  // Seed for random number generator
+    std::mt19937 generator(rd());  // Mersenne Twister random number generator
+    
+    while (!stop_cleanup) {
+        {
+            // Lock and perform cleanup
+            std::lock_guard<std::mutex> data_lock(data_mutex);
+            std::lock_guard<std::mutex> ttl_lock(ttl_mutex);
+
+            // Create a uniform distribution for random sampling
+            std::uniform_int_distribution<> distribution(0, ttls.size() - 1);
+
+            time_t now = std::time(nullptr); // current time
+            std::vector<int> indices(ttls.size()/10);
+            for(int i = 0; i < static_cast<int>(indices.size()); ++i) {
+                indices[i] = distribution(generator);
+            }
+            
+            std::vector<std::string> toDelete;
+            for (int i = 0; i < static_cast<int>(indices.size()); ++i) { // Sample up to 100 items
+                int index = indices[i];
+                auto it = std::next(this->ttls.begin(), index); // Access the element by index
+                if (now > it->second) {
+                    // expired
+                    toDelete.push_back(it->first);
+                }
+            }
+
+            for (int i = 0; i < static_cast<int>(toDelete.size()); ++i) {
+                this->ttls.erase(toDelete[i]);
+                this->data.erase(toDelete[i]);
+            }
+        } // Release locks here
+
+        // Sleep after releasing locks
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
@@ -49,7 +91,6 @@ std::string Database::get_value(const std::string &key) const {
     }
     
     return Response::ToString(ResponseMessage::NIL);
-
 }
 
 std::string Database::del_entry(const std::string &key) {
@@ -96,43 +137,92 @@ std::string Database::get_ttl(const std::string &key) const {
     return std::to_string(-2);
 }
 
-void Database::cleanup_expired() {
-    // Random number generator setup
-    std::random_device rd;  // Seed for random number generator
-    std::mt19937 generator(rd());  // Mersenne Twister random number generator
-    
-    while (!stop_cleanup) {
-        {
-            // Lock and perform cleanup
-            std::lock_guard<std::mutex> data_lock(data_mutex);
-            std::lock_guard<std::mutex> ttl_lock(ttl_mutex);
-
-            // Create a uniform distribution for random sampling
-            std::uniform_int_distribution<> distribution(0, ttls.size() - 1);
-
-            time_t now = std::time(nullptr); // current time
-            std::vector<int> indices(ttls.size()/10);
-            for(int i = 0; i < static_cast<int>(indices.size()); ++i) {
-                indices[i] = distribution(generator);
-            }
-            
-            std::vector<std::string> toDelete;
-            for (int i = 0; i < static_cast<int>(indices.size()); ++i) { // Sample up to 100 items
-                int index = indices[i];
-                auto it = std::next(this->ttls.begin(), index); // Access the element by index
-                if (now > it->second) {
-                    // expired
-                    toDelete.push_back(it->first);
-                }
-            }
-
-            for (int i = 0; i < static_cast<int>(toDelete.size()); ++i) {
-                this->ttls.erase(toDelete[i]);
-                this->data.erase(toDelete[i]);
-            }
-        } // Release locks here
-
-        // Sleep after releasing locks
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+std::string Database::left_push(const std::string& key, const std::string& value) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+    // Check that the is not another data type
+    if(keyExists && !holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
     }
+
+     // If list doesnt exist create one
+    if(!keyExists) {
+        this->data[key] = new LinkedList<std::string>();
+    }
+
+    LinkedList<std::string>* list = std::get<LinkedList<std::string>*>(this->data[key]);
+    list->left_push(value);
+    return std::to_string(list->length());
+}
+
+std::string Database::right_push(const std::string& key, const std::string& value) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+
+    // Check that the is not another data type
+    if(keyExists && !holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    // If list doesnt exist create one
+    if(!keyExists) {
+        this->data[key] = new LinkedList<std::string>();
+    }
+
+    LinkedList<std::string>* list = std::get<LinkedList<std::string>*>(this->data[key]);
+    list->right_push(value);
+
+    return std::to_string(list->length());
+}
+
+std::string Database::left_pop(const std::string& key) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+
+    // Check that the is not another data type
+    if(keyExists && !holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    // If list doesnt exist return nil
+    if(!keyExists) {
+        return Response::ToString(ResponseMessage::NIL);
+    }
+
+    LinkedList<std::string>* list = std::get<LinkedList<std::string>*>(this->data[key]);
+    return list->left_pop();
+}
+
+std::string Database::right_pop(const std::string& key) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+
+    // Check that the is not another data type
+    if(keyExists && !holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    // If list doesnt exist return nil
+    if(!keyExists) {
+        return Response::ToString(ResponseMessage::NIL);
+    }
+
+    LinkedList<std::string>* list = std::get<LinkedList<std::string>*>(this->data[key]);
+    return list->right_pop();
+}
+
+std::string Database::list_length(const std::string& key) const {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+
+    if(!this->data.contains(key)) {
+        return Response::ToString(ResponseMessage::NIL);
+    }
+
+    // Check that the is not another data type
+    if(!holds_alternative<LinkedList<std::string>*>(this->data.at(key)) ) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    LinkedList<std::string>* list = std::get<LinkedList<std::string>*>(this->data.at(key));
+    return std::to_string(list->length());
 }
