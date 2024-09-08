@@ -34,6 +34,7 @@ add_library(database STATIC
 add_library(datastructures STATIC
     src/DataStructures/LinkedList.cpp
     src/DataStructures/Node.cpp
+    src/DataStructures/SortedSet.cpp
 )
 
 # Find and link pthread

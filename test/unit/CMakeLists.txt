@@ -14,7 +14,17 @@ add_library(LinkedListTest STATIC
     LinkedListTest.cpp
 )
 
+add_library(SortedSetTest STATIC
+    SortedSetTest.cpp
+)
+
 target_link_libraries(LinkedListTest PRIVATE
+    gtest
+    gtest_main
+    datastructures
+)
+
+target_link_libraries(SortedSetTest PRIVATE
     gtest
     gtest_main
     datastructures
@@ -24,7 +34,7 @@ target_link_libraries(LinkedListTest PRIVATE
 add_executable(unit_tests unit_tests.cpp)
 
 # Link Google Test libraries
-target_link_libraries(unit_tests gtest gtest_main DatabaseTest LinkedListTest)
+target_link_libraries(unit_tests gtest gtest_main DatabaseTest LinkedListTest SortedSetTest)
 
 # Add a custom target for running the integration tests
 add_custom_target(run_unit_tests

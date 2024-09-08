@@ -13,8 +13,9 @@ protected:
   Database database;
   std::string default_key;
   std::string default_value;
+  double default_score;
 
-  DatabaseTest() : default_key("key"), default_value("value") {}
+  DatabaseTest() : default_key("key"), default_value("value"), default_score(10.0) {}
 
   /// @brief Generates a random string for a key
   /// @return a random string
@@ -357,4 +358,29 @@ TEST_F(DatabaseTest, GetLengthOfEmptyList) {
 TEST_F(DatabaseTest, GetlengthOfListWrongKeyType) {
   database.set_value(default_key, default_value);
   ASSERT_EQ(database.list_length(default_key), Response::ToString(ResponseMessage::WRONGTYPE));
+}
+
+TEST_F(DatabaseTest, ShouldStoreElementCorrectlyWhenAddingToSortedSet) {
+  std::string result = database.z_add(default_key, default_key, default_score);
+  EXPECT_EQ(result, "1");
+}
+
+TEST_F(DatabaseTest, shouldRemoveElementFromSortedSet) {
+  std::string result = database.z_add(default_key, default_key, default_score);
+  EXPECT_EQ(result, "1");
+
+  result =  database.z_remove(default_key, default_key);
+  EXPECT_EQ(result, "1");
+}
+
+TEST_F(DatabaseTest, shouldRetrieveCorrectRangeByScore) {
+  database.z_add(default_key, "element1", 10.5);
+  database.z_add(default_key, "element2", 15.3);
+  database.z_add(default_key, "element3", 20.7);
+
+  std::string result = database.z_range_by_score(default_key, 10.0, 20.0);
+
+  EXPECT_EQ(result, "\"element1\"\"10.5\"\n\"element2\"\"15.3\""); // "element1""10.5"\n"element2""15.3"
+
+
 }

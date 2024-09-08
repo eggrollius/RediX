@@ -1,6 +1,9 @@
 #include "database.h"
 #include "ResponseMessage.h"
+#include "LinkedList.cpp"
+#include "SortedSet.cpp"
 #include <iostream>
+#include <sstream>
 #include <ctime>
 #include <mutex>
 #include <random>
@@ -83,7 +86,7 @@ std::string Database::get_value(const std::string &key) const {
     if (this->data.contains(key) && !this->is_expired(key)) {
         StorageValue data_value = this->data.at(key);
         // Check that it is a string
-        if(!holds_alternative<std::string>(data_value)) {
+        if(!std::holds_alternative<std::string>(data_value)) {
             return Response::ToString(ResponseMessage::WRONGTYPE);
         }
         
@@ -141,7 +144,7 @@ std::string Database::left_push(const std::string& key, const std::string& value
     std::lock_guard<std::mutex> data_lock(data_mutex);
     bool keyExists = this->data.contains(key);
     // Check that the is not another data type
-    if(keyExists && !holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+    if(keyExists && !std::holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
         return Response::ToString(ResponseMessage::WRONGTYPE);
     }
 
@@ -160,7 +163,7 @@ std::string Database::right_push(const std::string& key, const std::string& valu
     bool keyExists = this->data.contains(key);
 
     // Check that the is not another data type
-    if(keyExists && !holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+    if(keyExists && !std::holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
         return Response::ToString(ResponseMessage::WRONGTYPE);
     }
 
@@ -180,7 +183,7 @@ std::string Database::left_pop(const std::string& key) {
     bool keyExists = this->data.contains(key);
 
     // Check that the is not another data type
-    if(keyExists && !holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+    if(keyExists && !std::holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
         return Response::ToString(ResponseMessage::WRONGTYPE);
     }
 
@@ -198,7 +201,7 @@ std::string Database::right_pop(const std::string& key) {
     bool keyExists = this->data.contains(key);
 
     // Check that the is not another data type
-    if(keyExists && !holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+    if(keyExists && !std::holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
         return Response::ToString(ResponseMessage::WRONGTYPE);
     }
 
@@ -219,10 +222,83 @@ std::string Database::list_length(const std::string& key) const {
     }
 
     // Check that the is not another data type
-    if(!holds_alternative<LinkedList<std::string>*>(this->data.at(key)) ) {
+    if(!std::holds_alternative<LinkedList<std::string>*>(this->data.at(key)) ) {
         return Response::ToString(ResponseMessage::WRONGTYPE);
     }
 
     LinkedList<std::string>* list = std::get<LinkedList<std::string>*>(this->data.at(key));
     return std::to_string(list->length());
+}
+
+std::string Database::z_add(const std::string& key, const std::string& element_key, const double score) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+
+    // Check if the type is correct and if the key is not expired
+    if (keyExists && !std::holds_alternative<SortedSet<std::string, double>*>(this->data.at(key)) && !is_expired(key)) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    if(!keyExists) {
+        this->data[key] = new SortedSet<std::string, double>();
+    }
+
+    // Retrieve the sorted set
+    SortedSet<std::string, double>* set = std::get<SortedSet<std::string, double>*>(this->data.at(key));
+    
+    return std::to_string(set->add(element_key, score));
+}
+
+std::string Database::z_remove(const std::string& key, const std::string& element_key) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+
+    // Check if the type is correct and if the key is not expired
+    if (keyExists && !std::holds_alternative<SortedSet<std::string, double>*>(this->data.at(key)) && !is_expired(key)) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    if(!keyExists) {
+        this->data[key] = new SortedSet<std::string, double>();
+    }
+
+    // Retrieve the sorted set
+    SortedSet<std::string, double>* set = std::get<SortedSet<std::string, double>*>(this->data.at(key));
+
+    return std::to_string(set->remove(element_key));
+}
+
+std::string Database::z_range_by_score(const std::string& key, const double min, const double max) const {
+    std::lock_guard<std::mutex> data_lock(this->data_mutex);
+    if(!this->data.contains(key)) {
+        return Response::ToString(ResponseMessage::NIL);
+    }
+    // Check if the type is correct and if the key is not expired
+    if (!std::holds_alternative<SortedSet<std::string, double>*>(this->data.at(key)) && !is_expired(key)) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    // Retrieve the sorted set
+    SortedSet<std::string, double>* set = std::get<SortedSet<std::string, double>*>(this->data.at(key));
+
+    // Get the range of elements by score
+    std::vector<std::pair<std::string, double>> results = set->range(min, max);
+
+    return z_vec_to_string(results);
+}
+
+std::string Database::z_vec_to_string(std::vector<std::pair<std::string, double>>& vec) const {
+    // Convert the input to a formatted string
+    std::ostringstream oss;
+
+    for (size_t i = 0; i < vec.size(); ++i) {
+        if (i != 0) {
+            oss << "\n";
+        }
+
+        oss << "\"" << vec[i].first << "\"";
+        oss << "\"" << vec[i].second << "\"";
+    }
+
+    return oss.str(); 
 }

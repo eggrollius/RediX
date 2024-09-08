@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "DatabaseTest.cpp"
 #include "LinkedListTest.cpp"
+#include "SortedSetTest.cpp"
 
 
 int main(int argc, char **argv) {

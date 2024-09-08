@@ -12,7 +12,10 @@ enum class Operation {
     RPUSH,
     LPOP,
     RPOP,
-    LLEN
+    LLEN,
+    ZADD,
+    ZREM,
+    ZRANGEBYSCORE
 };
 
 #endif // OPERATION_TYPES_H
