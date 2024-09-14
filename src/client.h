@@ -11,7 +11,7 @@
 class Client {
 public:
     Client();
-    Client(int port);
+    Client(const std::string& addr, const int port);
     ~Client();
 
     bool connect_to_server();
@@ -29,18 +29,19 @@ public:
     std::string llen(const std::string& key);
     std::string ZAdd(const std::string key, const std::string element_key, const double score);
     std::string ZRem(const std::string key, const std::string element_key);
-    std::vector<std::pair<std::string, double>> ZRangeByScore(const std::string key, const double min, const double max);
+    std::string ZRangeByScore(const std::string key, const double min, const double max);
 
 
 private:
     int socket_fd;
+    std::string addr;
     int port;
     int32_t read_full(int fd, char *buf, size_t n);
     int32_t write_full(int fd, char * buf, size_t n);
     bool send_request(const std::string &req);
     std::string send_command(const std::string& command);
     std::string read_response();
-    std::vector<std::pair<std::string, double>> string_to_z_vec(const std::string& str) const;
+    //std::vector<std::pair<std::string, double>> string_to_z_vec(const std::string& str) const;
 };
 
 #endif // CLIENT_H

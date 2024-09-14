@@ -7,8 +7,10 @@
 #include <thread>
 #include <vector>
 #include <cstring> // For strerror
+#include <arpa/inet.h>
 
-Server::Server(int port) : port(port), listening_sock_fd(-1), num_threads(1), stop_requested(true) {}
+
+Server::Server(const std::string& ip_addr, const int port) : ip_addr(ip_addr), port(port), listening_sock_fd(-1), num_threads(1), stop_requested(true) {}
 
 bool Server::start() {
   // Opening a socket
@@ -30,7 +32,13 @@ bool Server::start() {
   struct sockaddr_in addr = {};
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
-  addr.sin_addr.s_addr = INADDR_ANY; // wildcard address 0.0.0.0
+  
+  // Convert the address from string to binary form
+  if (inet_pton(AF_INET, this->ip_addr.c_str(), &addr.sin_addr.s_addr) <= 0) {
+      close(this->listening_sock_fd);
+      return false;
+  }
+
   if (bind(listening_sock_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
     std::cerr << "Bind failed: " << strerror(errno) << std::endl;
     close(listening_sock_fd);

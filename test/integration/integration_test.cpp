@@ -8,7 +8,7 @@ protected:
     Server server;
     Client client;
 
-    RediXIntegrationTest() : server(1234), client(1234) {}
+    RediXIntegrationTest() : server(1234), client("127.0.0.1", 1234) {}
 
     void SetUp() override {
         // Start the server
@@ -94,6 +94,27 @@ TEST_F(RediXIntegrationTest, ListPushPopTest) {
     EXPECT_EQ(client.llen("list_key"), "3");
 }
 
+std::vector<std::pair<std::string, double>> string_to_z_vec(const std::string& str) {
+    std::vector<std::pair<std::string, double>> vec;
+    std::istringstream iss(str);
+    std::string line;
+
+    while (std::getline(iss, line)) {
+        size_t first_quote = line.find("\"");
+        size_t second_quote = line.find("\"", first_quote + 1);
+        std::string key = line.substr(first_quote + 1, second_quote - first_quote - 1);
+
+        size_t third_quote = line.find("\"", second_quote + 1);
+        size_t fourth_quote = line.find("\"", third_quote + 1);
+        std::string value_str = line.substr(third_quote + 1, fourth_quote - third_quote - 1);
+
+        double value = std::stod(value_str); 
+        vec.emplace_back(key, value);
+    }
+
+    return vec;
+}
+
 TEST_F(RediXIntegrationTest, SortedSetTest) {
     EXPECT_EQ(client.ZAdd("sset", "key1", 0.0), "1");
     EXPECT_EQ(client.ZAdd("sset", "key2", 50.0), "1");
@@ -104,7 +125,7 @@ TEST_F(RediXIntegrationTest, SortedSetTest) {
       std::pair<std::string, double>("key2", 50.0) 
     };
 
-    std::vector<std::pair<std::string, double>> range = client.ZRangeByScore("sset", 0.0, 50.0);
+    std::vector<std::pair<std::string, double>> range = string_to_z_vec(client.ZRangeByScore("sset", 0.0, 50.0));
 
     ASSERT_EQ(expectedRange.size(), range.size());
     for(size_t i = 0; i < expectedRange.size(); ++i) {
@@ -112,3 +133,4 @@ TEST_F(RediXIntegrationTest, SortedSetTest) {
         EXPECT_EQ(expectedRange[i].second, range[i].second);
     }
 }
+

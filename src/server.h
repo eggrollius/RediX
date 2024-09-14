@@ -9,6 +9,7 @@
 
 class Server {
 private:
+  std::string ip_addr;
   int port;
   int listening_sock_fd;
   int num_threads;
@@ -24,7 +25,7 @@ private:
   void run();
   
 public:
-  Server(int);
+  Server(const std::string& ip_addr, const int port);
   bool start();
   bool stop();
 };
