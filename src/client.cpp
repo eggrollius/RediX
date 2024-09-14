@@ -16,9 +16,9 @@
 #define MAX_MSG 4096
 
 // Constructor
-Client::Client() : socket_fd(-1), port(1234) {}
+Client::Client() : socket_fd(-1), addr("127.0.0.1"), port(1234) {}
 
-Client::Client(int port) : socket_fd(-1), port(port) {}
+Client::Client(const std::string& addr, const int port) : socket_fd(-1), addr(addr), port(port) {}
 
 // Destructor
 Client::~Client() {
@@ -34,12 +34,18 @@ bool Client::connect_to_server() {
         return false;
     }
 
-    struct sockaddr_in addr = {};
-    addr.sin_family = AF_INET;
-    addr.sin_port = ntohs(this->port);
-    addr.sin_addr.s_addr = ntohl(0); // 0.0.0
+    struct sockaddr_in server_addr = {};
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(this->port);
 
-    if (connect(this->socket_fd, (const struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    // Convert the address from string to binary form
+    if (inet_pton(AF_INET, this->addr.c_str(), &server_addr.sin_addr) <= 0) {
+        close(this->socket_fd);
+        return false;
+    }
+
+    if (connect(this->socket_fd, (const struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        close(this->socket_fd);
         return false;
     }
 
@@ -215,30 +221,8 @@ std::string Client::ZRem(const std::string key, const std::string element_key) {
 }
 
 
-std::vector<std::pair<std::string, double>> Client::ZRangeByScore(const std::string key, const double min, const double max) {
+std::string Client::ZRangeByScore(const std::string key, const double min, const double max) {
     std::string request = "ZRANGEBYSCORE " + key + " " + std::to_string(min) + " " + std::to_string(max);
-    std::string response = send_command(request);
-    return string_to_z_vec(response);
+    return send_command(request);
 
-}
-
-std::vector<std::pair<std::string, double>> Client::string_to_z_vec(const std::string& str) const {
-    std::vector<std::pair<std::string, double>> vec;
-    std::istringstream iss(str);
-    std::string line;
-
-    while (std::getline(iss, line)) {
-        size_t first_quote = line.find("\"");
-        size_t second_quote = line.find("\"", first_quote + 1);
-        std::string key = line.substr(first_quote + 1, second_quote - first_quote - 1);
-
-        size_t third_quote = line.find("\"", second_quote + 1);
-        size_t fourth_quote = line.find("\"", third_quote + 1);
-        std::string value_str = line.substr(third_quote + 1, fourth_quote - third_quote - 1);
-
-        double value = std::stod(value_str); 
-        vec.emplace_back(key, value);
-    }
-
-    return vec;
 }

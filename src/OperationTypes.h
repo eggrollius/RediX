@@ -1,7 +1,7 @@
 // OperationTypes.h
 #ifndef OPERATION_TYPES_H
 #define OPERATION_TYPES_H
-
+#include <string>
 enum class Operation {
     GET,
     SET,
@@ -17,5 +17,7 @@ enum class Operation {
     ZREM,
     ZRANGEBYSCORE
 };
+
+bool operation_is(const std::string& operation_str, const Operation& operation);
 
 #endif // OPERATION_TYPES_H

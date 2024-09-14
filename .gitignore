@@ -17,3 +17,6 @@ lib
 
 *integration_tests
 *unit_tests
+
+*redix
+*redixcli
