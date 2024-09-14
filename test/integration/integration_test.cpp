@@ -62,3 +62,53 @@ TEST_F(RediXIntegrationTest, ExpireTest) {
     std::string expected_response = Response::ToString(ResponseMessage::NIL);
     EXPECT_EQ(client.get("key"), expected_response);
 }
+
+TEST_F(RediXIntegrationTest, ListPushPopTest) {
+    // Left Push Test
+    client.lpush("list_key", "value1");
+    client.lpush("list_key", "value2");
+    client.lpush("list_key", "value3");
+
+    // Verify the list length
+    EXPECT_EQ(client.llen("list_key"), "3");
+
+    // Right Push Test
+    client.rpush("list_key", "value4");
+    client.rpush("list_key", "value5");
+
+    // Verify the list length
+    EXPECT_EQ(client.llen("list_key"), "5");
+
+    // Left Pop Test
+    std::string left_pop_result = client.lpop("list_key");
+    EXPECT_EQ(left_pop_result, "value3");
+
+    // Verify the list length
+    EXPECT_EQ(client.llen("list_key"), "4");
+
+    // Right Pop Test
+    std::string right_pop_result = client.rpop("list_key");
+    EXPECT_EQ(right_pop_result, "value5");
+
+    // Verify the list length
+    EXPECT_EQ(client.llen("list_key"), "3");
+}
+
+TEST_F(RediXIntegrationTest, SortedSetTest) {
+    EXPECT_EQ(client.ZAdd("sset", "key1", 0.0), "1");
+    EXPECT_EQ(client.ZAdd("sset", "key2", 50.0), "1");
+    EXPECT_EQ(client.ZAdd("sset", "key3", 100.0), "1");
+
+    std::vector<std::pair<std::string, double>> expectedRange = {
+      std::pair<std::string, double>("key1", 0.0),
+      std::pair<std::string, double>("key2", 50.0) 
+    };
+
+    std::vector<std::pair<std::string, double>> range = client.ZRangeByScore("sset", 0.0, 50.0);
+
+    ASSERT_EQ(expectedRange.size(), range.size());
+    for(size_t i = 0; i < expectedRange.size(); ++i) {
+        EXPECT_EQ(expectedRange[i].first, range[i].first);
+        EXPECT_EQ(expectedRange[i].second, range[i].second);
+    }
+}

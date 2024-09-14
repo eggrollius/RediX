@@ -1,6 +1,10 @@
 #include "database.h"
 #include "ResponseMessage.h"
+#include "LinkedList.cpp"
+#include "SortedSet.cpp"
 #include <iostream>
+#include <sstream>
+#include <ctime>
 #include <mutex>
 #include <random>
 
@@ -12,6 +16,47 @@ Database::~Database() {
     this->stop_cleanup = true;
     if (this->cleanup_thread.joinable()) {
         this->cleanup_thread.join();
+    }
+}
+
+void Database::cleanup_expired() {
+    // Random number generator setup
+    std::random_device rd;  // Seed for random number generator
+    std::mt19937 generator(rd());  // Mersenne Twister random number generator
+    
+    while (!stop_cleanup) {
+        {
+            // Lock and perform cleanup
+            std::lock_guard<std::mutex> data_lock(data_mutex);
+            std::lock_guard<std::mutex> ttl_lock(ttl_mutex);
+
+            // Create a uniform distribution for random sampling
+            std::uniform_int_distribution<> distribution(0, ttls.size() - 1);
+
+            time_t now = std::time(nullptr); // current time
+            std::vector<int> indices(ttls.size()/10);
+            for(int i = 0; i < static_cast<int>(indices.size()); ++i) {
+                indices[i] = distribution(generator);
+            }
+            
+            std::vector<std::string> toDelete;
+            for (int i = 0; i < static_cast<int>(indices.size()); ++i) { // Sample up to 100 items
+                int index = indices[i];
+                auto it = std::next(this->ttls.begin(), index); // Access the element by index
+                if (now > it->second) {
+                    // expired
+                    toDelete.push_back(it->first);
+                }
+            }
+
+            for (int i = 0; i < static_cast<int>(toDelete.size()); ++i) {
+                this->ttls.erase(toDelete[i]);
+                this->data.erase(toDelete[i]);
+            }
+        } // Release locks here
+
+        // Sleep after releasing locks
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
@@ -41,7 +86,7 @@ std::string Database::get_value(const std::string &key) const {
     if (this->data.contains(key) && !this->is_expired(key)) {
         StorageValue data_value = this->data.at(key);
         // Check that it is a string
-        if(!holds_alternative<std::string>(data_value)) {
+        if(!std::holds_alternative<std::string>(data_value)) {
             return Response::ToString(ResponseMessage::WRONGTYPE);
         }
         
@@ -49,7 +94,6 @@ std::string Database::get_value(const std::string &key) const {
     }
     
     return Response::ToString(ResponseMessage::NIL);
-
 }
 
 std::string Database::del_entry(const std::string &key) {
@@ -96,43 +140,165 @@ std::string Database::get_ttl(const std::string &key) const {
     return std::to_string(-2);
 }
 
-void Database::cleanup_expired() {
-    // Random number generator setup
-    std::random_device rd;  // Seed for random number generator
-    std::mt19937 generator(rd());  // Mersenne Twister random number generator
-    
-    while (!stop_cleanup) {
-        {
-            // Lock and perform cleanup
-            std::lock_guard<std::mutex> data_lock(data_mutex);
-            std::lock_guard<std::mutex> ttl_lock(ttl_mutex);
-
-            // Create a uniform distribution for random sampling
-            std::uniform_int_distribution<> distribution(0, ttls.size() - 1);
-
-            time_t now = std::time(nullptr); // current time
-            std::vector<int> indices(ttls.size()/10);
-            for(int i = 0; i < static_cast<int>(indices.size()); ++i) {
-                indices[i] = distribution(generator);
-            }
-            
-            std::vector<std::string> toDelete;
-            for (int i = 0; i < static_cast<int>(indices.size()); ++i) { // Sample up to 100 items
-                int index = indices[i];
-                auto it = std::next(this->ttls.begin(), index); // Access the element by index
-                if (now > it->second) {
-                    // expired
-                    toDelete.push_back(it->first);
-                }
-            }
-
-            for (int i = 0; i < static_cast<int>(toDelete.size()); ++i) {
-                this->ttls.erase(toDelete[i]);
-                this->data.erase(toDelete[i]);
-            }
-        } // Release locks here
-
-        // Sleep after releasing locks
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+std::string Database::left_push(const std::string& key, const std::string& value) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+    // Check that the is not another data type
+    if(keyExists && !std::holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
     }
+
+     // If list doesnt exist create one
+    if(!keyExists) {
+        this->data[key] = new LinkedList<std::string>();
+    }
+
+    LinkedList<std::string>* list = std::get<LinkedList<std::string>*>(this->data[key]);
+    list->left_push(value);
+    return std::to_string(list->length());
+}
+
+std::string Database::right_push(const std::string& key, const std::string& value) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+
+    // Check that the is not another data type
+    if(keyExists && !std::holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    // If list doesnt exist create one
+    if(!keyExists) {
+        this->data[key] = new LinkedList<std::string>();
+    }
+
+    LinkedList<std::string>* list = std::get<LinkedList<std::string>*>(this->data[key]);
+    list->right_push(value);
+
+    return std::to_string(list->length());
+}
+
+std::string Database::left_pop(const std::string& key) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+
+    // Check that the is not another data type
+    if(keyExists && !std::holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    // If list doesnt exist return nil
+    if(!keyExists) {
+        return Response::ToString(ResponseMessage::NIL);
+    }
+
+    LinkedList<std::string>* list = std::get<LinkedList<std::string>*>(this->data[key]);
+    return list->left_pop();
+}
+
+std::string Database::right_pop(const std::string& key) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+
+    // Check that the is not another data type
+    if(keyExists && !std::holds_alternative<LinkedList<std::string>*>(this->data[key]) ) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    // If list doesnt exist return nil
+    if(!keyExists) {
+        return Response::ToString(ResponseMessage::NIL);
+    }
+
+    LinkedList<std::string>* list = std::get<LinkedList<std::string>*>(this->data[key]);
+    return list->right_pop();
+}
+
+std::string Database::list_length(const std::string& key) const {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+
+    if(!this->data.contains(key)) {
+        return Response::ToString(ResponseMessage::NIL);
+    }
+
+    // Check that the is not another data type
+    if(!std::holds_alternative<LinkedList<std::string>*>(this->data.at(key)) ) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    LinkedList<std::string>* list = std::get<LinkedList<std::string>*>(this->data.at(key));
+    return std::to_string(list->length());
+}
+
+std::string Database::z_add(const std::string& key, const std::string& element_key, const double score) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+
+    // Check if the type is correct and if the key is not expired
+    if (keyExists && !std::holds_alternative<SortedSet<std::string, double>*>(this->data.at(key)) && !is_expired(key)) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    if(!keyExists) {
+        this->data[key] = new SortedSet<std::string, double>();
+    }
+
+    // Retrieve the sorted set
+    SortedSet<std::string, double>* set = std::get<SortedSet<std::string, double>*>(this->data.at(key));
+    
+    return std::to_string(set->add(element_key, score));
+}
+
+std::string Database::z_remove(const std::string& key, const std::string& element_key) {
+    std::lock_guard<std::mutex> data_lock(data_mutex);
+    bool keyExists = this->data.contains(key);
+
+    // Check if the type is correct and if the key is not expired
+    if (keyExists && !std::holds_alternative<SortedSet<std::string, double>*>(this->data.at(key)) && !is_expired(key)) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    if(!keyExists) {
+        this->data[key] = new SortedSet<std::string, double>();
+    }
+
+    // Retrieve the sorted set
+    SortedSet<std::string, double>* set = std::get<SortedSet<std::string, double>*>(this->data.at(key));
+
+    return std::to_string(set->remove(element_key));
+}
+
+std::string Database::z_range_by_score(const std::string& key, const double min, const double max) const {
+    std::lock_guard<std::mutex> data_lock(this->data_mutex);
+    if(!this->data.contains(key)) {
+        return Response::ToString(ResponseMessage::NIL);
+    }
+    // Check if the type is correct and if the key is not expired
+    if (!std::holds_alternative<SortedSet<std::string, double>*>(this->data.at(key)) && !is_expired(key)) {
+        return Response::ToString(ResponseMessage::WRONGTYPE);
+    }
+
+    // Retrieve the sorted set
+    SortedSet<std::string, double>* set = std::get<SortedSet<std::string, double>*>(this->data.at(key));
+
+    // Get the range of elements by score
+    std::vector<std::pair<std::string, double>> results = set->range(min, max);
+
+    return z_vec_to_string(results);
+}
+
+std::string Database::z_vec_to_string(std::vector<std::pair<std::string, double>>& vec) const {
+    // Convert the input to a formatted string
+    std::ostringstream oss;
+
+    for (size_t i = 0; i < vec.size(); ++i) {
+        if (i != 0) {
+            oss << "\n";
+        }
+
+        oss << "\"" << vec[i].first << "\"";
+        oss << "\"" << vec[i].second << "\"";
+    }
+
+    return oss.str(); 
 }

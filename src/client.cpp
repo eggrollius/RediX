@@ -1,6 +1,9 @@
 #include "client.h"
 
 #include <iostream>
+#include <string>
+#include <sstream>
+#include <utility>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -8,6 +11,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <vector>
 
 #define MAX_MSG 4096
 
@@ -172,4 +176,69 @@ int Client::ttl(const std::string& key) {
 std::string Client::expire(const std::string& key, int seconds) {
     std::string request = "EXPIRE " + key + " " + std::to_string(seconds);
     return send_command(request);
+}
+
+
+std::string Client::lpush(const std::string& key, const std::string& value) {
+    std::string request = "LPUSH " + key + " " + value;
+    return send_command(request);
+}
+
+std::string Client::rpush(const std::string& key, const std::string& value) {
+    std::string request = "RPUSH " + key + " " + value;
+    return send_command(request);
+}
+
+std::string Client::lpop(const std::string& key) {
+    std::string request = "LPOP " + key; 
+    return send_command(request);
+}
+
+std::string Client::rpop(const std::string& key) {
+    std::string request = "RPOP " + key; 
+    return send_command(request);
+}
+
+std::string Client::llen(const std::string& key) {
+    std::string request = "LLEN " + key;
+    return send_command(request);
+}
+
+std::string Client::ZAdd(const std::string key, const std::string element_key, const double score) {
+    std::string request = "ZADD " + key + " " + element_key + " " + std::to_string(score);
+    return send_command(request);
+}
+
+std::string Client::ZRem(const std::string key, const std::string element_key) {
+    std::string request = "ZREM " + key + " " + element_key;
+    return send_command(request);
+}
+
+
+std::vector<std::pair<std::string, double>> Client::ZRangeByScore(const std::string key, const double min, const double max) {
+    std::string request = "ZRANGEBYSCORE " + key + " " + std::to_string(min) + " " + std::to_string(max);
+    std::string response = send_command(request);
+    return string_to_z_vec(response);
+
+}
+
+std::vector<std::pair<std::string, double>> Client::string_to_z_vec(const std::string& str) const {
+    std::vector<std::pair<std::string, double>> vec;
+    std::istringstream iss(str);
+    std::string line;
+
+    while (std::getline(iss, line)) {
+        size_t first_quote = line.find("\"");
+        size_t second_quote = line.find("\"", first_quote + 1);
+        std::string key = line.substr(first_quote + 1, second_quote - first_quote - 1);
+
+        size_t third_quote = line.find("\"", second_quote + 1);
+        size_t fourth_quote = line.find("\"", third_quote + 1);
+        std::string value_str = line.substr(third_quote + 1, fourth_quote - third_quote - 1);
+
+        double value = std::stod(value_str); 
+        vec.emplace_back(key, value);
+    }
+
+    return vec;
 }

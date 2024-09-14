@@ -7,7 +7,15 @@ enum class Operation {
     SET,
     DEL,
     EXPIRE,
-    TTL
+    TTL,
+    LPUSH,
+    RPUSH,
+    LPOP,
+    RPOP,
+    LLEN,
+    ZADD,
+    ZREM,
+    ZRANGEBYSCORE
 };
 
 #endif // OPERATION_TYPES_H

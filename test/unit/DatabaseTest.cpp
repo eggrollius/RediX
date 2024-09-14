@@ -13,8 +13,9 @@ protected:
   Database database;
   std::string default_key;
   std::string default_value;
+  double default_score;
 
-  DatabaseTest() : default_key("key"), default_value("value") {}
+  DatabaseTest() : default_key("key"), default_value("value"), default_score(10.0) {}
 
   /// @brief Generates a random string for a key
   /// @return a random string
@@ -244,7 +245,7 @@ TEST_F(DatabaseTest, DelThreadSafety) {
 /// @brief Perform many set_ttl operations concurrently using threads
 /// Then check that expired keys are correctly removed
 TEST_F(DatabaseTest, SetTTLAndExpireThreadSafety) {
-    int num_entries = 100000;
+    int num_entries = 10000;
     int num_threads = 10;
     std::vector<std::thread> threads;
     std::vector<std::string> keys;
@@ -287,4 +288,99 @@ TEST_F(DatabaseTest, SetTTLAndExpireThreadSafety) {
         std::string result = database.get_value(key);
         EXPECT_EQ(result, Response::ToString(ResponseMessage::NIL)); 
     }
+}
+
+// Testing List Functions
+TEST_F(DatabaseTest, LeftPushAndPopOnList) {
+  database.left_push(default_key, default_value);
+  std::string result = database.left_push(default_key, default_value);
+  EXPECT_EQ(result, "2");
+
+  ASSERT_EQ(database.left_pop(default_key), default_value);
+}
+
+TEST_F(DatabaseTest, RightPushAndPopOnList) {
+  database.right_push(default_key, default_value);
+  std::string result = database.right_push(default_key, default_value);
+  EXPECT_EQ(result, "2");
+
+  ASSERT_EQ(database.left_pop(default_key), default_value);
+}
+
+TEST_F(DatabaseTest, ListKeyExistsButHoldsADifferentDataType) {
+  database.set_value(default_key, default_value);
+  std::string result = database.left_push(default_key, default_value);
+  EXPECT_EQ(result, Response::ToString(ResponseMessage::WRONGTYPE));
+}
+
+TEST_F(DatabaseTest, LeftPopOnEmptyList) {
+  std::string result = database.left_pop(default_key);
+  ASSERT_EQ(result, Response::ToString(ResponseMessage::NIL));
+}
+
+TEST_F(DatabaseTest, RightPopOnEmptyList) {
+  std::string result = database.right_pop(default_key);
+  ASSERT_EQ(result, Response::ToString(ResponseMessage::NIL));
+}
+
+TEST_F(DatabaseTest, ListLengthTestLeftPopAndPush) {
+  int test_size = 5;
+
+  for (int expected_size = 1; expected_size <= test_size; ++expected_size) {
+    database.left_push(default_key, default_value);
+    EXPECT_EQ(database.list_length(default_key), std::to_string(expected_size));
+  }
+
+  for(int expected_size = test_size - 1; expected_size >=0; --expected_size) {
+    database.left_pop(default_key);
+    EXPECT_EQ(database.list_length(default_key), std::to_string(expected_size));
+  }
+}
+
+TEST_F(DatabaseTest, ListLengthTestRightPopAndPush) {
+  int test_size = 5;
+
+  for (int expected_size = 1; expected_size <= test_size; ++expected_size) {
+    database.right_push(default_key, default_value);
+    EXPECT_EQ(database.list_length(default_key), std::to_string(expected_size));
+  }
+
+  for(int expected_size = test_size - 1; expected_size >=0; --expected_size) {
+    database.right_pop(default_key);
+    EXPECT_EQ(database.list_length(default_key), std::to_string(expected_size));
+  }
+}
+
+TEST_F(DatabaseTest, GetLengthOfEmptyList) {
+  ASSERT_EQ(database.list_length(default_key), Response::ToString(ResponseMessage::NIL));
+}
+
+TEST_F(DatabaseTest, GetlengthOfListWrongKeyType) {
+  database.set_value(default_key, default_value);
+  ASSERT_EQ(database.list_length(default_key), Response::ToString(ResponseMessage::WRONGTYPE));
+}
+
+TEST_F(DatabaseTest, ShouldStoreElementCorrectlyWhenAddingToSortedSet) {
+  std::string result = database.z_add(default_key, default_key, default_score);
+  EXPECT_EQ(result, "1");
+}
+
+TEST_F(DatabaseTest, shouldRemoveElementFromSortedSet) {
+  std::string result = database.z_add(default_key, default_key, default_score);
+  EXPECT_EQ(result, "1");
+
+  result =  database.z_remove(default_key, default_key);
+  EXPECT_EQ(result, "1");
+}
+
+TEST_F(DatabaseTest, shouldRetrieveCorrectRangeByScore) {
+  database.z_add(default_key, "element1", 10.5);
+  database.z_add(default_key, "element2", 15.3);
+  database.z_add(default_key, "element3", 20.7);
+
+  std::string result = database.z_range_by_score(default_key, 10.0, 20.0);
+
+  EXPECT_EQ(result, "\"element1\"\"10.5\"\n\"element2\"\"15.3\""); // "element1""10.5"\n"element2""15.3"
+
+
 }

@@ -15,19 +15,36 @@ std::string RequestHandler::handle_request(const std::string &cmd_str) {
   std::string res_msg;
 
   std::string operation = cmd[0];
-  if(operation_is(operation, Operation::GET) && cmd.size() == 2) {
+  if (operation_is(operation, Operation::GET) && cmd.size() == 2) {
     res_msg = this->database.get_value(cmd[1]);
-  } else if(operation_is(operation, Operation::SET) && cmd.size() == 3) {
+  } else if (operation_is(operation, Operation::SET) && cmd.size() == 3) {
     res_msg = this->database.set_value(cmd[1], cmd[2]);
-  } else if(operation_is(operation, Operation::DEL) && cmd.size() == 2) {
+  } else if (operation_is(operation, Operation::DEL) && cmd.size() == 2) {
     res_msg = this->database.del_entry(cmd[1]);
-  } else if(operation_is(operation, Operation::EXPIRE) && cmd.size() == 3) {
+  } else if (operation_is(operation, Operation::EXPIRE) && cmd.size() == 3) {
     res_msg = this->database.set_ttl(cmd[1], std::stoi(cmd[2]));
-  } else if(operation_is(operation, Operation::TTL) && cmd.size() == 2) {
+  } else if (operation_is(operation, Operation::TTL) && cmd.size() == 2) {
     res_msg = this->database.get_ttl(cmd[1]);
+  } else if (operation_is(operation, Operation::LPUSH) && cmd.size() == 3) {
+    res_msg = this->database.left_push(cmd[1], cmd[2]);
+  } else if (operation_is(operation, Operation::RPUSH) && cmd.size() == 3) {
+    res_msg = this->database.right_push(cmd[1], cmd[2]);
+  } else if (operation_is(operation, Operation::LPOP) && cmd.size() == 2) {
+      res_msg = this->database.left_pop(cmd[1]);
+  } else if (operation_is(operation, Operation::RPOP) && cmd.size() == 2) {
+      res_msg = this->database.right_pop(cmd[1]);
+  } else if (operation_is(operation, Operation::LLEN) && cmd.size() == 2) {
+    res_msg = this->database.list_length(cmd[1]);
+  } else if(operation_is(operation, Operation::ZADD) && cmd.size() == 4){
+    res_msg = this->database.z_add(cmd[1], cmd[2], std::stod(cmd[3]));
+  } else if(operation_is(operation, Operation::ZREM) && cmd.size() == 3) {
+    res_msg = this->database.z_remove(cmd[1], cmd[2]);
+  } else if(operation_is(operation, Operation::ZRANGEBYSCORE) && cmd.size() == 4) {
+    res_msg = this->database.z_range_by_score(cmd[1], std::stod(cmd[2]), std::stod(cmd[3]));
   } else {
-    res_msg = "Unkown operation";
+    res_msg = "Unknown operation";
   }
+
 
   return res_msg;
 }
@@ -55,6 +72,22 @@ bool RequestHandler::operation_is(const std::string operation_str, const Operati
       return operation_str == "EXPIRE";
     case Operation::TTL:
       return operation_str == "TTL";
+    case Operation::LPUSH:
+      return operation_str =="LPUSH";
+    case Operation::RPUSH:
+      return operation_str == "RPUSH";
+    case Operation::LPOP:
+      return operation_str == "LPOP";
+    case Operation::RPOP:
+      return operation_str == "RPOP";
+    case Operation::LLEN:
+      return operation_str == "LLEN";
+    case Operation::ZADD:
+      return operation_str == "ZADD";
+    case Operation::ZREM:
+      return operation_str == "ZREM";
+    case Operation::ZRANGEBYSCORE:
+      return operation_str == "ZRANGEBYSCORE";
     default:
       return false;
   }
