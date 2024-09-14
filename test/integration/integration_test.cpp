@@ -93,3 +93,22 @@ TEST_F(RediXIntegrationTest, ListPushPopTest) {
     // Verify the list length
     EXPECT_EQ(client.llen("list_key"), "3");
 }
+
+TEST_F(RediXIntegrationTest, SortedSetTest) {
+    EXPECT_EQ(client.ZAdd("sset", "key1", 0.0), "1");
+    EXPECT_EQ(client.ZAdd("sset", "key2", 50.0), "1");
+    EXPECT_EQ(client.ZAdd("sset", "key3", 100.0), "1");
+
+    std::vector<std::pair<std::string, double>> expectedRange = {
+      std::pair<std::string, double>("key1", 0.0),
+      std::pair<std::string, double>("key2", 50.0) 
+    };
+
+    std::vector<std::pair<std::string, double>> range = client.ZRangeByScore("sset", 0.0, 50.0);
+
+    ASSERT_EQ(expectedRange.size(), range.size());
+    for(size_t i = 0; i < expectedRange.size(); ++i) {
+        EXPECT_EQ(expectedRange[i].first, range[i].first);
+        EXPECT_EQ(expectedRange[i].second, range[i].second);
+    }
+}

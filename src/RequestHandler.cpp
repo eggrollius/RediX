@@ -35,12 +35,12 @@ std::string RequestHandler::handle_request(const std::string &cmd_str) {
       res_msg = this->database.right_pop(cmd[1]);
   } else if (operation_is(operation, Operation::LLEN) && cmd.size() == 2) {
     res_msg = this->database.list_length(cmd[1]);
-  } else if(operation_is(operation, Operation::ZADD) && cmd.size() == 3){
-    res_msg = this->database.z_add(cmd[1], cmd[2]);
-  else if(operation_is(operation, Operation::ZREM) && cmd.size() == 3) {
+  } else if(operation_is(operation, Operation::ZADD) && cmd.size() == 4){
+    res_msg = this->database.z_add(cmd[1], cmd[2], std::stod(cmd[3]));
+  } else if(operation_is(operation, Operation::ZREM) && cmd.size() == 3) {
     res_msg = this->database.z_remove(cmd[1], cmd[2]);
   } else if(operation_is(operation, Operation::ZRANGEBYSCORE) && cmd.size() == 4) {
-    res_msg = this->database.z_range_by_score(cmd[1], cmd[2], cmd[3]);
+    res_msg = this->database.z_range_by_score(cmd[1], std::stod(cmd[2]), std::stod(cmd[3]));
   } else {
     res_msg = "Unknown operation";
   }
@@ -82,6 +82,12 @@ bool RequestHandler::operation_is(const std::string operation_str, const Operati
       return operation_str == "RPOP";
     case Operation::LLEN:
       return operation_str == "LLEN";
+    case Operation::ZADD:
+      return operation_str == "ZADD";
+    case Operation::ZREM:
+      return operation_str == "ZREM";
+    case Operation::ZRANGEBYSCORE:
+      return operation_str == "ZRANGEBYSCORE";
     default:
       return false;
   }
