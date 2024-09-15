@@ -62,10 +62,12 @@ Please run on a Linux OS, with the g++ compiler and CMake.
 1. Clone the repo
    ```sh
    git clone https://github.com/eggrollius/RediX.git
+   cd RediX
    ```
 2. build with CMake
    ```sh
    cmake -S . -B build
+   cmake --build build
    ```
 3. Run the server optionally specifying the ip and port
     ```sh
@@ -79,7 +81,7 @@ Please run on a Linux OS, with the g++ compiler and CMake.
     ``` sh
     127.0.0.1:6389> SET key value
     OK
-    127.0.0.1:6389> GET value
+    127.0.0.1:6389> GET key
     value
     ```
 
