@@ -8,7 +8,7 @@ protected:
     Server server;
     Client client;
 
-    RediXIntegrationTest() : server(1234), client("127.0.0.1", 1234) {}
+    RediXIntegrationTest() : server("127.0.0.1", 6387), client("127.0.0.1", 6387) {}
 
     void SetUp() override {
         // Start the server
