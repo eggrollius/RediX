@@ -18,7 +18,7 @@ private:
   bool write_full(char *buf, ssize_t n);
 public:
   ClientConnection(int sock_fd);
-  bool receive_request(std::string& msg);
+  int receive_request(std::string& msg);
   void send_response(std::string &response);
 };
 

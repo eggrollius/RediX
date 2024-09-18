@@ -11,9 +11,14 @@ ClientConnection::ClientConnection(int sock_fd) {
   this->wbuf_sent = 0;
 }
 
-// TODO: This method needs to be improved
-// Infinite loops, confusing etc.
-bool ClientConnection::receive_request(std::string &msg) {
+/**
+ * @brief Attempts to receive a request from the socket.
+ * @param msg A reference to a string that will be populated with the request message.
+ * @retval 1 If a message is read successfully.
+ * @retval 0 If no message can be read (e.g., if the socket is in non-blocking mode and has no data).
+ * @retval -1 If an error occurred or the connection was closed.
+ */
+int ClientConnection::receive_request(std::string &msg) {
   while (true) {
     // Try to fill the buffer, ensuring that it is not overflowed
     assert(this->rbuf_size < sizeof(this->rbuf));
@@ -25,11 +30,15 @@ bool ClientConnection::receive_request(std::string &msg) {
 
     if (rv < 0 && errno == EAGAIN) { // EAGAIN: this fd would block
         // implies empty buffer
-        return false; 
+        return 0; 
     }
 
-    if (rv <= 0) { 
-        break; // Stop if read failed or EOF reached
+    if (rv < 0) { 
+        return -1; // error
+    }
+
+    if(rv == 0) {
+        return -1; // EOF reached
     }
 
     this->rbuf_size += (size_t)rv;
@@ -64,10 +73,10 @@ bool ClientConnection::receive_request(std::string &msg) {
       }
       this->rbuf_size = remain;
 
-      return true; // Successfully received and parsed a message
+      return 1; // Successfully received and parsed a message
     }
   }
-  return true;
+  return 1;
 }
 
 
