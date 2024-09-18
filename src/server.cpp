@@ -133,12 +133,19 @@ void Server::run() {
   while (!this->stop_requested) {
     this->accept_client();
 
-    for (size_t i = 0; i < client_connections.size(); ++i) {
-      ClientConnection* client = client_connections[i];
+    for (auto it = client_connections.begin(); it < client_connections.end(); ++it) {
+      ClientConnection* client = *it;
+
       std::string client_msg;
-      if (client->receive_request(client_msg)) {
+      int read_result = client->receive_request(client_msg);
+      if (read_result == 1) {
         std::string response = request_handler.handle_request(client_msg);
         client->send_response(response);
+      } else if(read_result == -1) {
+        // Connection was closed or an error
+        // destroy the client connection object
+        delete client;
+        it = client_connections.erase(it);
       }
     }
   }

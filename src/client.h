@@ -15,7 +15,7 @@ public:
     ~Client();
 
     bool connect_to_server();
-
+    void disconnect();
     std::string get(const std::string& key);
     std::string set(const std::string& key, const std::string& value);
     std::string del(const std::string& key);

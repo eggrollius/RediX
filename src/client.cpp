@@ -52,6 +52,10 @@ bool Client::connect_to_server() {
     return true;
 }
 
+void Client::disconnect() {
+    close(this->socket_fd);
+}
+
 // Send a request to the server
 bool Client::send_request(const std::string& req) {
     const char* text = req.c_str();
@@ -108,8 +112,13 @@ std::string Client::read_response() {
 int32_t Client::read_full(int fd, char *buf, size_t n) {
     while (n > 0) {
         int rv = read(fd, buf, n);
-        if(rv <= 0) {
-            // perror("read() in read_full() failed");
+        if(rv < 0) {
+            perror("read() in read_full() failed");
+            return -1;
+        } else if(rv == 0) {
+            std::cerr << "Server disconnected unexpectedly." << std::endl;
+            close(this->socket_fd);
+            this->socket_fd = -1;  // Mark as disconnected
             return -1;
         }
 
@@ -128,8 +137,13 @@ int32_t Client::read_full(int fd, char *buf, size_t n) {
 int32_t Client::write_full(int fd, char *buf, size_t n) {
     while (n > 0) {
         int rv = write(fd, buf, n);
-        if(rv <= 0) {
-            // perror("write() in write_full() failed");
+        if(rv < 0) {
+            perror("write() in write_full() failed");
+            return -1;
+        } else if(rv == 0) {
+            std::cerr << "Server disconnected unexpectedly." << std::endl;
+            close(this->socket_fd);
+            this->socket_fd = -1;  // Mark as disconnected
             return -1;
         }
 

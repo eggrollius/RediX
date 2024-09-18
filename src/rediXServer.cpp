@@ -35,9 +35,7 @@ int main(int argc, char* argv[]) {
 
         if (server.start()) {
             std::cout << "Server running at " << addr << ":" << port << ". Press Ctrl+C to stop." << std::endl;
-            while(!interupted) {
-                
-            }
+            while(!interupted) {}
         } else {
             std::cerr << "Failed to start server" << std::endl;
             return 1;

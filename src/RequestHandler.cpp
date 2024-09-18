@@ -9,6 +9,11 @@
 // consider using an unorder_map to map strings to operations
 // consider creating a command class to delegate some of this work to
 std::string RequestHandler::handle_request(const std::string &cmd_str) {
+  if(cmd_str.size() <= 0) {
+    // empty string would cause error
+    return "";
+  }
+
   std::vector<std::string> cmd;
   parse_cmd_from_str(cmd_str, cmd);
 
